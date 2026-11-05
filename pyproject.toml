@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "anonimizador-lgpd"
+version = "1.0.0"
+description = "Anonimiza dados pessoais (nomes, CPF, RG, endereços...) em Word, PDF, imagens, texto e Excel, localmente."
+readme = "README.md"
+license = { text = "GPL-3.0-only" }
+authors = [{ name = "n-lobato" }]
+requires-python = ">=3.10"
+dependencies = ["PySide6>=6.6", "PyMuPDF>=1.24", "lxml>=5.0", "openpyxl>=3.1", "Pillow>=10.0"]
+
+[project.optional-dependencies]
+spacy = ["spacy>=3.7"]
+
+[project.scripts]
+anonimizador-cli = "anonimizador.cli:main"
+
+[project.gui-scripts]
+anonimizador = "anonimizador.app:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

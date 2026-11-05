@@ -1,0 +1,14 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+dist/
+build/*
+!build/baixar_tessdata.py
+!build/.gitkeep
+*.spec.bak
+anonimizados/
+relatorio_anonimizacao_*.xlsx
+.DS_Store
+Thumbs.db
