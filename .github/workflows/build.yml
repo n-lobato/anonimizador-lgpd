@@ -33,7 +33,10 @@ jobs:
         env:
           QT_QPA_PLATFORM: offscreen
           TESSDATA_PREFIX: ${{ github.workspace }}\build\tessdata
-        run: python -m pytest -v
+        run: |
+          python -m pytest -v
+          Write-Output "Código de saída do pytest: $LASTEXITCODE"
+          exit $LASTEXITCODE
 
       - name: Gerar executável
         run: pyinstaller --noconfirm anonimizador.spec
