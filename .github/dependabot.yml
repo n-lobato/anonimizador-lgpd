@@ -1,0 +1,22 @@
+# Propõe atualizações mensais das bibliotecas e das ações do GitHub.
+# Cada proposta vira um pull request, e os testes rodam antes de qualquer decisão.
+version: 2
+updates:
+  - package-ecosystem: pip
+    directory: "/"
+    schedule:
+      interval: monthly
+    groups:
+      bibliotecas:
+        patterns: ["*"]
+    commit-message:
+      prefix: "Dependências"
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: monthly
+    groups:
+      acoes:
+        patterns: ["*"]
+    commit-message:
+      prefix: "GitHub Actions"

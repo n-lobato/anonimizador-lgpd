@@ -8,6 +8,7 @@ build/*
 !build/baixar_tessdata.py
 !build/gerar_exemplos.py
 !build/avaliar.py
+!build/avaliar_ocr.py
 !build/.gitkeep
 *.spec.bak
 anonimizados/

@@ -1,0 +1,14 @@
+name: Sugestão
+description: Uma ideia de melhoria ou um formato de documento que poderia ser aceito.
+labels: ["sugestão"]
+body:
+  - type: markdown
+    attributes:
+      value: "Esta página é **pública**. Não inclua dados pessoais reais em exemplos ou anexos."
+  - type: textarea
+    id: ideia
+    attributes:
+      label: Sugestão
+      description: O que poderia mudar e em que situação isso ajudaria.
+    validations:
+      required: true

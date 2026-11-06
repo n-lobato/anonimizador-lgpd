@@ -1,0 +1,36 @@
+name: Erro no programa
+description: O programa travou, deu mensagem de erro ou não abriu um arquivo.
+labels: ["erro"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Antes de tudo: não cole dados reais
+        Esta página é **pública**. Não anexe documentos de verdade nem cole trechos com nomes, CPF, endereços ou qualquer dado de pessoas reais, nem os seus. Se o erro só aparece com um documento real, recrie a situação num arquivo de teste com dados inventados.
+  - type: checkboxes
+    id: dados
+    attributes:
+      label: Confirmação
+      options:
+        - label: Confirmo que esta issue e os anexos não contêm dados pessoais reais.
+          required: true
+  - type: input
+    id: versao
+    attributes:
+      label: Versão do programa
+      description: Aparece no título da janela ou em Ajuda > Sobre.
+      placeholder: "1.1.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: formato
+    attributes:
+      label: Tipo de arquivo
+      options: [PDF com texto, PDF digitalizado, Word (.docx), PowerPoint (.pptx), Excel, CSV ou texto, Imagem, Outro]
+  - type: textarea
+    id: o-que
+    attributes:
+      label: O que aconteceu
+      description: O que você fez, o que esperava e o que aconteceu. Copie a mensagem de erro, se houver.
+    validations:
+      required: true

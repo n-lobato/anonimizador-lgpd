@@ -1,0 +1,47 @@
+name: Dado não detectado ou marcado por engano
+description: Um nome, número ou endereço passou sem ser trocado, ou algo que não é dado pessoal foi trocado.
+labels: ["detecção"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Use só exemplos inventados
+        Esta página é **pública**. Troque todos os dados por fictícios, mas mantenha a **estrutura** do trecho: as palavras ao redor, a pontuação, as maiúsculas e o formato dos números. É a estrutura que faz o programa acertar ou errar.
+
+        Exemplo: em vez de `A testemunha Fulana Real da Silva, CPF real...`, escreva `A testemunha Joana Teste Pereira, CPF 529.982.247-25`.
+
+        Se o problema for um dado que **continua no arquivo** depois de anonimizado (sob a tarja, nos metadados), não abra issue: relate em particular, como explica o SECURITY.md.
+  - type: checkboxes
+    id: dados
+    attributes:
+      label: Confirmação
+      options:
+        - label: Confirmo que o exemplo abaixo foi inventado e não contém dados de pessoas reais.
+          required: true
+  - type: dropdown
+    id: tipo
+    attributes:
+      label: O que aconteceu
+      options:
+        - Um dado pessoal passou sem ser trocado
+        - Algo que não é dado pessoal foi trocado
+    validations:
+      required: true
+  - type: textarea
+    id: trecho
+    attributes:
+      label: Trecho de exemplo (inventado)
+      description: Algumas linhas antes e depois do ponto do problema.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: esperado
+    attributes:
+      label: O que deveria acontecer
+      placeholder: "\"Joana Teste Pereira\" deveria virar [PESSOA_1]."
+  - type: input
+    id: versao
+    attributes:
+      label: Versão do programa
+      placeholder: "1.1.0"

@@ -43,6 +43,11 @@ jobs:
           Write-Output "Código de saída do pytest: $LASTEXITCODE"
           exit $LASTEXITCODE
 
+      - name: Medição em PDF digitalizado (OCR)
+        env:
+          TESSDATA_PREFIX: ${{ github.workspace }}\build\tessdata
+        run: python build/avaliar_ocr.py --detalhes
+
       - name: Gerar executável
         run: pyinstaller --noconfirm anonimizador.spec
 
@@ -118,6 +123,6 @@ jobs:
         env:
           QT_QPA_PLATFORM: offscreen
         run: |
-          pip install -r requirements.txt pytest python-docx
+          pip install -r requirements-dev.txt
           python build/baixar_tessdata.py
           TESSDATA_PREFIX=$PWD/build/tessdata python -m pytest -v
