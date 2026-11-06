@@ -11,7 +11,7 @@ Para cada documento do corpus:
 3. o resultado é lido de novo com OCR, para ver o que ainda dá para ler.
 
 Um dado conta como "coberto" quando nenhuma das suas partes (palavras do nome,
-números) aparece na leitura do arquivo anonimizado. Partes que o OCR não
+números; no e-mail, só a parte antes do @) aparece na leitura do arquivo anonimizado. Partes que o OCR não
 conseguiu ler nem no original ficam de fora da conta e são informadas à parte.
 
 Limitações: a digitalização é perfeita (sem sujeira, inclinação ou carimbo),
@@ -80,6 +80,9 @@ def ler_com_ocr(caminho: Path) -> str:
 def partes_do_dado(m: avaliar.Marcado) -> list[str]:
     """Pedaços que, se ainda legíveis, indicam vazamento: palavras do nome e números."""
     n = normalizar(m.texto)
+    if m.tipo == "EMAIL":
+        # o que identifica é a parte antes do @; o domínio (gov.br, gmail.com) é comum a muitos
+        n = n.split("@")[0]
     partes = []
     digitos = re.sub(r"\D", "", n)
     if len(digitos) >= 5:

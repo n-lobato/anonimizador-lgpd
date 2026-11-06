@@ -86,7 +86,7 @@ def test_email_lido_pelo_ocr():
     # formas reais produzidas pelo Tesseract em português a partir de um PDF escaneado
     lidos = ["abigail.fonteneleGQeconomia.df.gov.br", "erica.hashimoto(Ose.df.gov.br",
              "marilda.vilelaQ&Qgmail.com", "abigail.fonteneleQeconomia.df.gov.br",
-             "marilda.vileladgmail.com", "joao(@)uol.com.br"]
+             "marilda.vileladgmail.com", "joao(@)uol.com.br", "erica.hashimoto(&Pse .df.gov.br"]
     r = _por_tipo(" | ".join(lidos) + ". Site: www.tjdft.jus.br e gov.br. Questão: QUESTÃO 3. "
                   "Rio Queimado.com e caixaQuadra 3.")
     assert r["EMAIL"] == lidos

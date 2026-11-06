@@ -73,7 +73,7 @@ EMAIL = re.compile(r"(?<![\w.+-])[\w.+-]+@[\w-]+(?:\.[\w-]+)+(?<!\.)")
 _TLD = r"\.(?:com|net|org|edu|gov|mil|jus|adv|leg|mp|def|br|io|me|info)(?:\.br)?"
 EMAIL_OCR = re.compile(
     r"(?<![\w.+-])[a-z0-9._+-]*[a-z0-9](?=[A-Z@©()&]{0,2}[Q@©(&])[A-Z@©()&]{1,3}"
-    r"[a-z0-9-]+(?:\.[a-z0-9-]+)*" + _TLD + r"(?!\w)(?!\.[a-z0-9])")
+    r"[a-z0-9-]+(?: ?\.[a-z0-9-]+)*" + _TLD + r"(?!\w)(?!\.[a-z0-9])")  # às vezes com espaço antes do ponto
 # ... ou como "d", que só é aceito antes de provedores conhecidos (evita confundir com sites)
 EMAIL_OCR_D = re.compile(
     r"(?<![\w.+-])[a-z0-9._+-]*[a-z][a-z0-9._+-]*d(?:gmail|hotmail|yahoo|outlook|uol|bol|terra|icloud|live|msn|ig)"
