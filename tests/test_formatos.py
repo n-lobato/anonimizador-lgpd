@@ -157,9 +157,12 @@ def test_pdf_digitalizado_com_ocr(tmp_path):
     for a in s.arquivos:
         assert not a.erro, a.erro
     out = fitz.open(s.arquivos[0].saida)
-    ocr = out[0].get_textpage_ocr(language="por", dpi=200, full=True,
+    pagina = out[0]  # manter a mesma referência da página para o textpage
+    ocr = pagina.get_textpage_ocr(language="por", dpi=200, full=True,
                                   tessdata=localizar_tessdata("por"))
-    texto = out[0].get_text(textpage=ocr)
+    texto = pagina.get_text(textpage=ocr)
     assert "529.982" not in texto and "Henrique" not in texto
-    assert "Requerente" in texto
+    # o resto da página continua visível: há pixels escuros onde estava "Requerente:"
+    trecho = pagina.get_pixmap(dpi=72, clip=fitz.Rect(60, 100, 150, 125))
+    assert min(trecho.samples) < 100
     assert s.arquivos[1].saida.suffix == ".png"

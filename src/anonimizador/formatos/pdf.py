@@ -174,7 +174,12 @@ def tarjar_documento(doc, paginas: list[PaginaTexto], substituidor) -> int:
         for a, b, codigo in trechos:
             rects = _retangulos(pt.caixas[a:b])
             for i, r in enumerate(rects):
-                rect = f.Rect(r[0] - 0.4, r[1] - 0.4, r[2] + 0.4, r[3] + 0.4)
+                if pt.ocr:
+                    # caixas do OCR costumam ser estreitas: folga para não sobrar pixel do dado
+                    h = r[3] - r[1]
+                    rect = f.Rect(r[0] - h * 0.08, r[1] - h * 0.1, r[2] + h * 0.5, r[3] + h * 0.1)
+                else:
+                    rect = f.Rect(r[0] - 0.4, r[1] - 0.4, r[2] + 0.4, r[3] + 0.4)
                 texto = codigo if i == 0 else None
                 kwargs = dict(fill=(0, 0, 0), text_color=(1, 1, 1), cross_out=False)
                 if texto:

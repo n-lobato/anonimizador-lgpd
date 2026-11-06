@@ -20,10 +20,11 @@ NUM = r"(?:n\.?\s?[º°o]\.?|n[º°o]\.?|n\.|número|numero|nr\.?)"
 # --------------------------------------------------------------------------
 # Expressões
 # --------------------------------------------------------------------------
-CPF_FORMATADO = re.compile(r"(?<![\w.\-/])\d{3}\.\d{3}\.\d{3}\s?[-–]\s?\d{2}(?![\w])")
+# Espaços opcionais ao redor da pontuação: o OCR às vezes lê "529.982 .247-25".
+CPF_FORMATADO = re.compile(r"(?<![\w.\-/])\d{3} ?\. ?\d{3} ?\. ?\d{3} ?[-–] ?\d{2}(?![\w])")
 CPF_SIMPLES = re.compile(r"(?<![\w.\-/])\d{11}(?![\w])")
 CNPJ_FORMATADO = re.compile(
-    r"(?<![\w.\-/])[0-9A-Z]{2}\.[0-9A-Z]{3}\.[0-9A-Z]{3}/[0-9A-Z]{4}-\d{2}(?![\w])")
+    r"(?<![\w.\-/])[0-9A-Z]{2} ?\. ?[0-9A-Z]{3} ?\. ?[0-9A-Z]{3} ?/ ?[0-9A-Z]{4} ?- ?\d{2}(?![\w])")
 CNPJ_SIMPLES = re.compile(r"(?<![\w.\-/])[0-9A-Z]{12}\d{2}(?![\w])")
 
 RG = re.compile(
@@ -64,7 +65,8 @@ MATRICULA = [
     re.compile(r"(?<!\w)(?:prec[- ]?cp|idt\.?\s*mil(?:itar)?)\s*[:\-–]?\s*(?:" + NUM +
                r"\s*)?(?P<v>\d[\d.\-]{4,15}\d)(?!\d)", I),
 ]
-PROCESSO = re.compile(r"(?<![\d.\-])\d{7}-?\d{2}\.?\d{4}\.?\d\.?\d{2}\.?\d{4}(?![\d])")
+PROCESSO = re.compile(
+    r"(?<![\d.\-])\d{7} ?-? ?\d{2} ?\.? ?\d{4} ?\.? ?\d ?\.? ?\d{2} ?\.? ?\d{4}(?![\d])")
 EMAIL = re.compile(r"(?<![\w.+-])[\w.+-]+@[\w-]+(?:\.[\w-]+)+(?<!\.)")
 TELEFONES = [
     re.compile(r"(?<![\w+])(?:\+\s?55\s?)?\(\s?0?\d{2}\s?\)\s?(?:9\s?)?\d{4}[-\s.]?\d{4}(?!\d)"),
@@ -76,7 +78,7 @@ TELEFONE_CONTEXTO = re.compile(
     r"(?<!\w)(?:tel(?:efone)?s?|fone|cel(?:ular)?|whats(?:app)?|contato|fax)\.?\s*(?:"
     + NUM + r"\s*)?[:\-–]?\s*(?P<v>(?:\(?0?\d{2}\)?\s?)?(?:9\s?)?\d{4}[-\s.]?\d{4})(?!\d)", I)
 CEP = [
-    re.compile(r"(?<![\w.\-/])\d{2}\.?\d{3}-\d{3}(?![\w\-])"),
+    re.compile(r"(?<![\w.\-/])\d{2}\.?\d{3} ?- ?\d{3}(?![\w\-])"),
     re.compile(r"(?<!\w)CEP\s*[:\-–]?\s*(?:" + NUM + r"\s*)?(?P<v>\d{8})(?!\d)", I),
 ]
 DATA_NASC = re.compile(
