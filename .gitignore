@@ -7,6 +7,7 @@ dist/
 build/*
 !build/baixar_tessdata.py
 !build/gerar_exemplos.py
+!build/avaliar.py
 !build/.gitkeep
 *.spec.bak
 anonimizados/
