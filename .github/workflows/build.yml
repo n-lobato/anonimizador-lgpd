@@ -6,6 +6,11 @@ on:
     tags: ["v*"]
   pull_request:
   workflow_dispatch:
+    inputs:
+      publicar:
+        description: "Publicar em Releases a versão indicada em src/anonimizador/__init__.py (só no ramo main)"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -76,10 +81,20 @@ jobs:
             AnonimizadorLGPD-windows.zip
             AnonimizadorLGPD-windows.zip.sha256
 
+      - name: Ler a versão do programa
+        shell: pwsh
+        run: |
+          $v = (Select-String -Path src/anonimizador/__init__.py -Pattern '__version__ = "(.+)"').Matches[0].Groups[1].Value
+          "VERSAO=$v" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
+          Write-Output "Versão: $v"
+
       - name: Publicar release
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.publicar && github.ref == 'refs/heads/main')
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || format('v{0}', env.VERSAO) }}
+          name: ${{ format('Anonimizador LGPD {0}', env.VERSAO) }}
+          target_commitish: ${{ github.sha }}
           files: |
             AnonimizadorLGPD-windows.zip
             AnonimizadorLGPD-windows.zip.sha256
