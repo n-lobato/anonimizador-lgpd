@@ -103,7 +103,20 @@ Cuidados ao interpretar:
 - a medição usa texto digital. Em PDF digitalizado e imagem, o resultado também depende da qualidade do OCR;
 - um dado "coberto" é aquele em que todas as letras e números foram substituídos. Se sobrou parte do dado (por exemplo, um sobrenome), conta como vazamento.
 
-Para rodar a medição: `python build/avaliar.py --detalhes`. Para contribuir com novos casos, veja `tests/corpus/LEIA-ME.md`.
+#### Em PDF digitalizado
+
+A mesma medição foi repetida com cada documento transformado num PDF que é só imagem, como um escaneado (200 dpi, sem sujeira nem inclinação). O programa anonimiza com OCR, e o resultado é lido de novo com OCR para ver o que continuou legível.
+
+| | Desenvolvimento (188 dados) | Validação (103 dados) |
+|---|---|---|
+| Primeira medição | 97% | 80% |
+| Depois das correções | 99% | 92% |
+
+A primeira medição revelou dois problemas, depois corrigidos: nomes, endereços e números que quebravam no fim da linha não eram reconhecidos (isso valia para qualquer PDF, não só para os escaneados), e o OCR lê o "@" dos e-mails como "Q", "GQ" ou "(O", e nenhum e-mail era reconhecido. As correções usaram esses mesmos documentos, então o número que indica o comportamento em documentos novos é o da primeira medição. O ponto mais fraco que restou são **e-mails dentro de tabelas** em documentos escaneados.
+
+Num escaneado real, com manchas, carimbos, assinaturas por cima do texto ou papel torto, o resultado tende a ser pior.
+
+Para rodar a medição: `python build/avaliar.py --detalhes` (texto) e `python build/avaliar_ocr.py --detalhes` (PDF digitalizado, precisa do PyMuPDF e dos dados do OCR). Para contribuir com novos casos, veja `tests/corpus/LEIA-ME.md`.
 
 Se o [spaCy](https://spacy.io) com um modelo em português estiver instalado (versão em código-fonte), ele é usado como reforço.
 
@@ -113,7 +126,7 @@ Se o [spaCy](https://spacy.io) com um modelo em português estiver instalado (ve
 - Nomes de rua sem número ("Avenida Pau-Brasil") são tratados como endereço, mesmo quando são só referência de lugar. Desmarque na revisão quando não for o caso.
 - Texto dentro de imagens incorporadas no Word (assinaturas, carimbos, prints) não é analisado. O programa avisa quando o documento tem imagens.
 - No PDF, quando o nome é curto e o código não cabe na tarja, ela fica só preta. A correspondência continua no relatório.
-- O OCR depende da qualidade da digitalização. Documentos tortos, manuscritos ou de baixa resolução podem ter falhas.
+- O OCR depende da qualidade da digitalização. Documentos tortos, manuscritos ou de baixa resolução podem ter falhas. Em escaneados, confira com atenção e-mails e dados dentro de tabelas: o OCR costuma ler o "@" errado.
 - Cópias de planilhas podem perder gráficos e imagens (limitação da biblioteca openpyxl).
 - Anonimizar com código numerado é, tecnicamente, **pseudonimização**: quem tiver o relatório consegue reverter. Para fins da LGPD (art. 12 e art. 13, § 4º), guarde o relatório separado e protegido, ou não o gere.
 

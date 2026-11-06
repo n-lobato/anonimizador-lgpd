@@ -39,6 +39,7 @@ e é preciso escrever documentos novos para medir de novo.
 |---|---|---|---|---|
 | nov/2026 | 1º grupo (sentença, e-mails, procuração, certidão, ata escolar, relatório social) | 94% | 94% | medido antes de olhar os erros; depois usado para corrigir e movido para `desenvolvimento/` |
 | nov/2026 | 2º grupo, atual (boletim, WhatsApp, laudo, ofício, acordo, lista de presença) | 91% | 93% | número de referência do README; depois usado para corrigir |
+| nov/2026 | 2º grupo, em PDF digitalizado (`build/avaliar_ocr.py`) | 80% | 92% | primeira medição com OCR; os e-mails e as quebras de linha foram corrigidos olhando estes documentos |
 
 Para a próxima medição independente, escreva documentos novos em `validacao/`
 (e mova os atuais para `desenvolvimento/`) **antes** de alterar a detecção.
