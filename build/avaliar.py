@@ -69,10 +69,13 @@ class Resultado:
 
 
 def avaliar_arquivo(caminho: Path) -> tuple[list[Resultado], list[tuple[str, str]]]:
-    texto, marcados = ler_marcado(caminho.read_text(encoding="utf-8"))
+    # bytes, e não read_text/write_text: no Windows o modo texto troca \n por \r\n
+    # e deslocaria as posições do gabarito
+    bruto = caminho.read_bytes().decode("utf-8").replace("\r\n", "\n")
+    texto, marcados = ler_marcado(bruto)
     with tempfile.TemporaryDirectory() as tmp:
         f = Path(tmp) / caminho.name
-        f.write_text(texto, encoding="utf-8")
+        f.write_bytes(texto.encode("utf-8"))
         sessao = Sessao(Configuracao(), Termos())
         sessao.carregar([f])
         sessao.analisar()

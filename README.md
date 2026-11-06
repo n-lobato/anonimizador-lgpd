@@ -16,9 +16,23 @@ vira
 
 A mesma pessoa recebe sempre o mesmo código, inclusive quando aparece de outra forma ("Maria Souza", "MARIA:", "a Sra. Souza"). Assim o documento continua legível.
 
+> **Atenção: trocar nomes e números não garante, sozinho, que ninguém consiga descobrir de quem é o documento.** O cargo, o local, as datas e os fatos narrados podem bastar para identificar a pessoa. Pela LGPD (art. 12), o dado só deixa de ser pessoal quando a identificação não é possível por meios técnicos razoáveis. Leia o documento anonimizado inteiro antes de compartilhar e retire à mão o contexto que ainda identifique alguém.
+
 ## Download
 
 Baixe o arquivo `AnonimizadorLGPD-windows.zip` na página de [Releases](https://github.com/n-lobato/anonimizador-lgpd/releases), descompacte em qualquer pasta (ou pen drive) e execute `AnonimizadorLGPD.exe`. Não precisa instalar nada. O OCR em português já vem incluído.
+
+O Windows pode mostrar o aviso "O Windows protegeu o computador", porque o executável não tem assinatura digital paga. Clique em **Mais informações** e depois em **Executar assim mesmo**.
+
+### Conferir se o arquivo é o original
+
+O pacote é gerado pelo GitHub Actions a partir do código deste repositório, e não no computador do autor. Cada versão traz, junto do .zip, o arquivo `AnonimizadorLGPD-windows.zip.sha256` com a impressão digital (hash SHA-256) do pacote. Para conferir, abra o PowerShell na pasta do download e rode:
+
+```
+Get-FileHash .\AnonimizadorLGPD-windows.zip -Algorithm SHA256
+```
+
+O código mostrado deve ser igual ao do arquivo `.sha256` e ao das notas da versão. Se for diferente, não use o arquivo.
 
 ## Como usar
 
@@ -53,7 +67,7 @@ Formatos antigos (.doc, .xls, .rtf, .odt) devem ser salvos antes como .docx ou .
 
 ## O que é detectado
 
-Nomes de pessoas, CPF, RG e identidade militar, CNH, título de eleitor, PIS/PASEP/NIT, CTPS, passaporte, inscrição na OAB, matrícula (funcional, SIAPE, imóvel), CNPJ (inclusive o novo formato alfanumérico), número de processo no padrão CNJ, e-mail, telefone, endereço, CEP, data de nascimento, placa de veículo, agência e conta bancária, cartão de crédito e endereço IP.
+Nomes de pessoas (inclusive apelidos introduzidos por "vulgo" ou "conhecido como"), CPF, RG e identidade militar, CNH, título de eleitor, PIS/PASEP/NIT, CTPS, passaporte, inscrição na OAB, matrícula (funcional, SIAPE, imóvel), registro em conselho profissional (CRM, CREA, CRESS e outros), CNPJ (inclusive o novo formato alfanumérico), número de processo no padrão CNJ, e-mail, telefone, endereço, CEP, data de nascimento, placa de veículo, agência e conta bancária, cartão de crédito e endereço IP.
 
 Em **Ferramentas > Tipos de dados a procurar** dá para desligar o que não interessa. Número de processo e CNPJ de empresa, por exemplo, costumam ser dados públicos.
 
@@ -66,13 +80,37 @@ Para nomes, o programa usa regras explicáveis, sem inteligência artificial na 
 - sequências de palavras com inicial maiúscula (ou em caixa alta), ligadas por "da", "de", "dos" etc.;
 - listas de prenomes e sobrenomes brasileiros comuns;
 - contexto jurídico: "requerente", "testemunha", "Sr.", "Dra.", ", brasileiro", ", CPF", rótulos de fala em transcrições ("MARIA:");
-- exclusão de cargos, órgãos, meses, cidades e homenagens ("Rua João Pessoa", "Lei Maria da Penha").
+- profissões e relações antes do nome ("o engenheiro", "a vizinha", "a coordenadora"), linhas de assinatura (nome sozinho na linha, com o cargo logo abaixo), apelidos ("vulgo", "conhecido como") e colunas de tabela seguidas de CPF;
+- exclusão de cargos, órgãos, meses, cidades, empresas ("Ltda", "S.A.") e homenagens ("Rua João Pessoa", "Lei Maria da Penha", "Câmara dos Deputados").
+
+### Quanto ele acerta
+
+A detecção foi medida em 18 documentos fictícios, com cada dado pessoal marcado à mão (pasta `tests/corpus`): petições, sentença, termos de audiência, atas, contrato, procuração, certidão de nascimento, e-mails, conversa de WhatsApp, boletim de ocorrência, laudo, ofício e lista de presença.
+
+O número que vale é o da **validação**: 6 documentos escritos depois dos ajustes e que o programa nunca tinha "visto". Nesses textos, **sem a revisão manual**:
+
+| | Versão 1.0.0 | Versão atual |
+|---|---|---|
+| Todos os dados pessoais (104) | 91% | 93% |
+| Só nomes de pessoas (61) | 90% | 90% |
+| Falsos positivos | 0 | 0 |
+
+Ou seja: **cerca de 1 em cada 10 nomes passou sem ser detectado**. Os casos que escaparam foram apelidos ("conhecido na região como Magrão"), prenomes soltos em conversas ("o Josias"), um nome raro numa tabela e uma data de nascimento com o rótulo "Nascimento:". Esses casos foram corrigidos depois da medição, mas o número de referência continua sendo o medido antes, porque é o que indica o comportamento em documentos novos.
+
+Cuidados ao interpretar:
+
+- os documentos foram escritos por quem desenvolveu as regras, e os seus documentos reais serão mais variados. Espere um resultado **pior** do que o da tabela;
+- a medição usa texto digital. Em PDF digitalizado e imagem, o resultado também depende da qualidade do OCR;
+- um dado "coberto" é aquele em que todas as letras e números foram substituídos. Se sobrou parte do dado (por exemplo, um sobrenome), conta como vazamento.
+
+Para rodar a medição: `python build/avaliar.py --detalhes`. Para contribuir com novos casos, veja `tests/corpus/LEIA-ME.md`.
 
 Se o [spaCy](https://spacy.io) com um modelo em português estiver instalado (versão em código-fonte), ele é usado como reforço.
 
 ## Limitações (leia antes de usar)
 
-- **Nenhuma detecção automática de nomes é perfeita.** Nomes raros, apelidos ou nomes escritos em minúsculas podem passar, e algumas palavras podem ser marcadas por engano. Por isso a revisão vem ligada por padrão. Confira o resultado antes de compartilhar.
+- **Nenhuma detecção automática de nomes é perfeita.** Na medição acima, cerca de 1 em cada 10 nomes passou. Nomes raros, apelidos, prenomes soltos e nomes escritos em minúsculas são os que mais escapam, e algumas palavras podem ser marcadas por engano. Por isso a revisão vem ligada por padrão. Confira o resultado antes de compartilhar.
+- Nomes de rua sem número ("Avenida Pau-Brasil") são tratados como endereço, mesmo quando são só referência de lugar. Desmarque na revisão quando não for o caso.
 - Texto dentro de imagens incorporadas no Word (assinaturas, carimbos, prints) não é analisado. O programa avisa quando o documento tem imagens.
 - No PDF, quando o nome é curto e o código não cabe na tarja, ela fica só preta. A correspondência continua no relatório.
 - O OCR depende da qualidade da digitalização. Documentos tortos, manuscritos ou de baixa resolução podem ter falhas.
@@ -113,6 +151,7 @@ python build/baixar_tessdata.py      # dados do OCR em português
 python iniciar.py                     # abre a janela
 python iniciar.py --cli arquivo.pdf   # linha de comando
 python -m pytest                      # testes
+python build/avaliar.py --detalhes    # mede os acertos no corpus de teste
 pyinstaller anonimizador.spec         # gera o executável em dist/
 ```
 
@@ -137,5 +176,9 @@ tests/          testes automatizados
 GPL-3.0. O programa usa o [PyMuPDF](https://pymupdf.readthedocs.io), distribuído sob AGPL-3.0, para a tarja de PDFs; por isso o código deste projeto também é livre. Os dados de idioma do OCR vêm do projeto [tessdata_fast](https://github.com/tesseract-ocr/tessdata_fast) (Apache-2.0).
 
 Autor: **n-lobato**
+
+### Sobre o uso de inteligência artificial
+
+O desenvolvimento contou com o Claude, assistente de IA da Anthropic, na escrita do código, dos testes e desta documentação. As escolhas sobre como o programa funciona foram feitas pelo autor. O código é aberto justamente para que qualquer pessoa possa conferir o que ele faz, e a medição de acertos acima existe para que ninguém precise confiar só na palavra de quem o fez.
 
 Este programa é uma ferramenta de apoio. A responsabilidade pela conferência do resultado e pelo tratamento adequado dos dados é de quem o utiliza.
