@@ -68,12 +68,16 @@ MATRICULA = [
 PROCESSO = re.compile(
     r"(?<![\d.\-])\d{7} ?-? ?\d{2} ?\.? ?\d{4} ?\.? ?\d ?\.? ?\d{2} ?\.? ?\d{4}(?![\d])")
 EMAIL = re.compile(r"(?<![\w.+-])[\w.+-]+@[\w-]+(?:\.[\w-]+)+(?<!\.)")
-# O OCR em português costuma ler o "@" como "Q", "©" ou "(@)" ...
-EMAIL_OCR = re.compile(r"(?<![\w.+-])[a-z0-9._+-]*[a-z][a-z0-9._+-]*(?:Q|©|\(@\))[a-z0-9-]+(?:\.[a-z0-9-]+)+(?<!\.)")
+# O OCR em português costuma trocar o "@" por um grupo de 1 a 3 sinais ("Q", "GQ", "(O",
+# "Q&Q", "©"). Nome e domínio em minúsculas e final de domínio conhecido evitam confusão.
+_TLD = r"\.(?:com|net|org|edu|gov|mil|jus|adv|leg|mp|def|br|io|me|info)(?:\.br)?"
+EMAIL_OCR = re.compile(
+    r"(?<![\w.+-])[a-z0-9._+-]*[a-z0-9](?=[A-Z@©()&]{0,2}[Q@©(&])[A-Z@©()&]{1,3}"
+    r"[a-z0-9-]+(?:\.[a-z0-9-]+)*" + _TLD + r"(?!\w)(?!\.[a-z0-9])")
 # ... ou como "d", que só é aceito antes de provedores conhecidos (evita confundir com sites)
 EMAIL_OCR_D = re.compile(
     r"(?<![\w.+-])[a-z0-9._+-]*[a-z][a-z0-9._+-]*d(?:gmail|hotmail|yahoo|outlook|uol|bol|terra|icloud|live|msn|ig)"
-    r"\.com(?:\.br)?(?![\w.])")
+    r"\.com(?:\.br)?(?!\w)(?!\.[a-z0-9])")
 TELEFONES = [
     re.compile(r"(?<![\w+])(?:\+\s?55\s?)?\(\s?0?\d{2}\s?\)\s?(?:9\s?)?\d{4}[-\s.]?\d{4}(?!\d)"),
     re.compile(r"(?<![\w+])\+\s?55\s?\d{2}\s?(?:9\s?)?\d{4}[-\s.]?\d{4}(?!\d)"),

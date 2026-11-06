@@ -83,9 +83,13 @@ def test_nome_endereco_e_numero_quebrados_entre_linhas():
 
 
 def test_email_lido_pelo_ocr():
-    r = _por_tipo("abigail.fonteneleQeconomia.df.gov.br; chave marilda.vileladgmail.com; "
-                  "joao(@)uol.com.br. Site: www.tjdft.jus.br e gov.br. Questão: QUESTÃO 3.")
-    assert r["EMAIL"] == ["abigail.fonteneleQeconomia.df.gov.br", "marilda.vileladgmail.com", "joao(@)uol.com.br"]
+    # formas reais produzidas pelo Tesseract em português a partir de um PDF escaneado
+    lidos = ["abigail.fonteneleGQeconomia.df.gov.br", "erica.hashimoto(Ose.df.gov.br",
+             "marilda.vilelaQ&Qgmail.com", "abigail.fonteneleQeconomia.df.gov.br",
+             "marilda.vileladgmail.com", "joao(@)uol.com.br"]
+    r = _por_tipo(" | ".join(lidos) + ". Site: www.tjdft.jus.br e gov.br. Questão: QUESTÃO 3. "
+                  "Rio Queimado.com e caixaQuadra 3.")
+    assert r["EMAIL"] == lidos
 
 
 def test_juntar_linhas_nao_estende_nome_ja_encontrado():
