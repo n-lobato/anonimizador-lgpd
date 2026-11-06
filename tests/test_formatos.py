@@ -166,3 +166,64 @@ def test_pdf_digitalizado_com_ocr(tmp_path):
     trecho = pagina.get_pixmap(dpi=72, clip=fitz.Rect(60, 100, 150, 125))
     assert min(trecho.samples) < 100
     assert s.arquivos[1].saida.suffix == ".png"
+
+
+@precisa_pdf
+def test_pdf_nao_sobra_dado_em_nenhum_lugar_do_arquivo(tmp_path):
+    """Varre o PDF anonimizado inteiro: conteúdo, texto invisível, anotações e metadados."""
+    nome, cpf = "Pedro Henrique Alves", "529.982.247-25"
+    doc = fitz.open()
+    page = doc.new_page()
+    page.insert_text((72, 72), f"Requerente: {nome}, CPF {cpf}.", fontsize=11)
+    # camada de texto invisível, como a que scanners com OCR gravam sobre a imagem
+    page.insert_text((72, 120), f"Testemunha: {nome}", fontsize=11, render_mode=3)
+    nota = page.add_text_annot((300, 300), f"Conferir com {nome}")
+    nota.set_info(title="Autor Verdadeiro")
+    nota.update()
+    doc.set_metadata({"author": "Autor Verdadeiro", "title": nome, "subject": cpf,
+                      "keywords": nome, "creator": "Autor Verdadeiro"})
+    doc.set_xml_metadata(f"<x:xmpmeta xmlns:x='adobe:ns:meta/'><dc>{nome}</dc></x:xmpmeta>")
+    doc.set_toc([[1, f"Depoimento de {nome}", 1]])
+    f = tmp_path / "completo.pdf"
+    doc.save(f)
+
+    s = _rodar([f])
+    assert not s.arquivos[0].erro, s.arquivos[0].erro
+    out = fitz.open(s.arquivos[0].saida)
+
+    texto = "".join(p.get_text() for p in out)
+    assert "Pedro" not in texto and "529.982" not in texto
+    assert texto.count("Requerente:") == 1 and "Testemunha:" in texto
+
+    meta = out.metadata or {}
+    for campo in ("author", "title", "subject", "keywords", "creator"):
+        assert "Pedro" not in (meta.get(campo) or "") and "Autor Verdadeiro" not in (meta.get(campo) or "")
+    assert "Pedro" not in (out.get_xml_metadata() or "")
+    assert all("Pedro" not in t[1] for t in out.get_toc())
+    for annot in out[0].annots() or []:
+        info = annot.info
+        assert "Pedro" not in info.get("content", "") and "Autor Verdadeiro" not in info.get("title", "")
+
+    # nenhum objeto ou fluxo do arquivo (já descomprimido) pode conter o dado
+    for xref in range(1, out.xref_length()):
+        objeto = out.xref_object(xref, compressed=False) or ""
+        assert "Pedro" not in objeto and "529.982" not in objeto, objeto[:200]
+        if out.xref_is_stream(xref):
+            dados = out.xref_stream(xref) or b""
+            assert b"Pedro" not in dados and b"529.982" not in dados
+
+
+@precisa_pdf
+def test_pdf_nome_que_so_aparece_em_comentario(tmp_path):
+    doc = fitz.open()
+    page = doc.new_page()
+    page.insert_text((72, 72), "Decisão sobre o pedido de vista.", fontsize=11)
+    nota = page.add_text_annot((300, 300), "Requerente: Kauã Ribeiro, CPF 529.982.247-25")
+    nota.update()
+    f = tmp_path / "comentario.pdf"
+    doc.save(f)
+    s = _rodar([f])
+    assert not s.arquivos[0].erro, s.arquivos[0].erro
+    out = fitz.open(s.arquivos[0].saida)
+    conteudos = [a.info.get("content", "") for a in out[0].annots() or []]
+    assert conteudos and all("Kauã" not in c and "529.982" not in c for c in conteudos)

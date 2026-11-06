@@ -1,0 +1,20 @@
+ESCOLA DE GOVERNO DO DISTRITO FEDERAL
+Curso: Proteção de Dados Pessoais no Setor Público (turma 04/2026)
+Instrutor: Prof. Ms. [[PESSOA|Caetano Ribas Medeiros]]
+Data: 25/09/2026 - Local: Auditório Térreo
+
+LISTA DE PRESENÇA
+
+Nº | NOME | CPF | ÓRGÃO | E-MAIL
+01 | [[PESSOA|Abigail Torres Fontenele]] | [[CPF|645.568.151-77]] | SEEC | [[EMAIL|abigail.fontenele@economia.df.gov.br]]
+02 | [[PESSOA|Bruno Kenji Sato]] | [[CPF|884.472.940-72]] | DETRAN | [[EMAIL|bruno.sato@detran.df.gov.br]]
+03 | [[PESSOA|Cleonice Prado Rangel]] | [[CPF|557.616.987-57]] | SES | [[EMAIL|cleonice.rangel@saude.df.gov.br]]
+04 | [[PESSOA|Dagoberto Lins]] | [[CPF|168.976.846-00]] | CBMDF | [[EMAIL|dagoberto.lins@cbm.df.gov.br]]
+05 | [[PESSOA|Érica Yumi Hashimoto]] | [[CPF|978.809.320-54]] | SEEDF | [[EMAIL|erica.hashimoto@se.df.gov.br]]
+06 | [[PESSOA|Fagner Rocha Quintela]] | [[CPF|819.672.731-38]] | PCDF | [[EMAIL|fagner.quintela@pcdf.df.gov.br]]
+07 | [[PESSOA|Glória Maria Avelar]] | [[CPF|778.486.488-42]] | TCDF | [[EMAIL|gloria.avelar@tc.df.gov.br]]
+
+Observação: a servidora [[PESSOA|Cleonice]] saiu às 15h por compromisso no Hospital Regional da Asa Norte.
+
+[[PESSOA|Caetano Ribas Medeiros]]
+Instrutor

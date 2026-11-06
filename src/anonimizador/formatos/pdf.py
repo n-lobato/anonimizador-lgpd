@@ -125,6 +125,14 @@ def extrair(caminho: str, opcoes: Opcoes) -> Extraido:
         partes.append("\n".join(str(v) for k, v in meta.items() if v and k in ("title", "subject", "keywords")))
         for item in doc.get_toc():
             partes.append(str(item[1]))
+        # comentários e notas: um nome que só aparece num comentário também precisa ser achado
+        for page in doc:
+            for annot in page.annots() or []:
+                try:
+                    info = annot.info
+                    partes.append("\n".join(v for v in (info.get("content"), info.get("subject")) if v))
+                except Exception:
+                    continue
         if len(doc.embfile_names()) if hasattr(doc, "embfile_names") else 0:
             avisos.append("O PDF tem arquivos anexados; eles serão removidos da versão anonimizada.")
     finally:

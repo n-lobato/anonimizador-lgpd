@@ -1,0 +1,31 @@
+LAUDO MÉDICO PERICIAL
+
+Processo nº [[?PROCESSO|6069199-61.2025.8.07.0001]]
+Autor: [[PESSOA|EVERALDO NUNES CAMPELO]]
+Réu: Instituto Nacional do Seguro Social - INSS
+Perito: Dr. [[PESSOA|Henrique Bastos Lacerda]], CRM/DF [[MATRICULA|18.442]]
+
+1. IDENTIFICAÇÃO DO PERICIANDO
+
+Nome: [[PESSOA|Everaldo Nunes Campelo]]
+Data de nascimento: [[DATA_NASCIMENTO|21/04/1971]]
+Profissão: pedreiro
+Documento apresentado: CNH [[CNH|02987456310]]
+Acompanhante: [[PESSOA|Marta Campelo]] (esposa)
+
+2. HISTÓRICO
+
+O periciando relata dor lombar intensa desde 2023, após queda de andaime em obra da Construtora Horizonte Ltda. Informa acompanhamento com o ortopedista Dr. [[PESSOA|Fábio Rangel]] no Hospital de Base do Distrito Federal e sessões de fisioterapia na clínica Movimento Saúde.
+
+3. EXAME FÍSICO
+
+Paciente em bom estado geral, deambulando com dificuldade. Teste de Lasègue positivo à direita.
+
+4. CONCLUSÃO
+
+Há incapacidade parcial e permanente para atividades que exijam esforço físico. Data provável do início da incapacidade: março de 2023.
+
+Brasília, 30 de setembro de 2026.
+
+[[PESSOA|Henrique Bastos Lacerda]]
+Médico Perito - CRM/DF [[MATRICULA|18.442]]

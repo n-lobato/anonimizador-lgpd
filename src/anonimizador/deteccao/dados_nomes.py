@@ -72,7 +72,7 @@ elizabete elizabeth eloa eloisa elza emilia erica erika evelyn evelin fatima fla
 gabriele gabrielle geane geisa gilvania gloria graca graziela hilda iara ingrid irene iris
 isadora ivone ivete janaina jane joana joice joyce jordana josiane jovana judite julieta
 jussara kamila karen kariny lavinia leda leila lena lenita liana lidiane ligia lindalva
-lourdes lucilene luzia mafalda maira maisa marcele margareth mari mariane marlei marli
+lourdes lurdes lucilene luzia mafalda maira maisa marcele margareth mari mariane marlei marli
 matilde maura mayara milena mirela nair natali nathalia neusa neuza nivea norma odete
 ofelia penelope quiteria regiane rosalia rosemary roberta rosiane salete samanta silmara
 sinara socorro stefany stephanie susana suzana tania thalita tuane valquiria veronica
@@ -194,6 +194,7 @@ comissao conselho comite colegiado plenario sessao reuniao pauta ordem dia abert
 encerrada lavrada lida aprovada
 objeto conclusao introducao resumo relatorio voto ementa dispositivo fundamentacao
 nota tecnica parecer oficio memorando despacho informacao
+representante representantes legal responsavel recursos humanos pessoal administrativo administrativa financeiro financeira juridico juridica
  dona
 """.split())
 

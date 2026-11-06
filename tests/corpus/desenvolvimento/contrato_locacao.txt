@@ -1,0 +1,32 @@
+CONTRATO DE LOCAÇÃO RESIDENCIAL
+
+LOCADOR: [[PESSOA|ALTAMIRO JOSÉ BORGES]], brasileiro, casado, militar da reserva, portador da Identidade Militar nº [[RG|010293847-5 MD/EB]], inscrito no CPF sob o nº [[CPF|186.091.390-34]], residente na [[ENDERECO|SHIS QL 12, Conjunto 4, Casa 9]], Lago Sul, Brasília/DF, e-mail [[EMAIL|altamiro.borges@uol.com.br]].
+
+LOCATÁRIA: [[PESSOA|Yasmin Carvalho Rezende]], brasileira, solteira, analista de sistemas, portadora da CNH nº [[CNH|04567891234]], inscrita no CPF sob o nº [[CPF|996.030.824-30]], nascida em [[DATA_NASCIMENTO|17/11/1996]], telefone [[TELEFONE|+55 61 99271-0458]].
+
+FIADOR: [[PESSOA|Ronaldo Rezende]], brasileiro, viúvo, aposentado, CPF [[CPF|628.194.821-12]], residente na [[ENDERECO|Rua das Paineiras, nº 1.040, apto 1203]], Águas Claras/DF, CEP [[CEP|71936-250]].
+
+CLÁUSULA PRIMEIRA. O LOCADOR dá em locação à LOCATÁRIA o imóvel situado na [[ENDERECO|SQS 115, Bloco G, Apartamento 304]], Asa Sul, Brasília/DF, matrícula nº [[MATRICULA|128.554]] do 1º Ofício de Registro de Imóveis do Distrito Federal.
+
+CLÁUSULA SEGUNDA. O prazo da locação é de 30 meses, com início em 1º de julho de 2026.
+
+CLÁUSULA TERCEIRA. O aluguel mensal é de R$ 3.900,00, pago até o dia 5 de cada mês por transferência para a conta do LOCADOR no Banco Itaú, agência [[CONTA_BANCARIA|4412]], conta corrente [[CONTA_BANCARIA|03311-8]], ou por PIX na chave [[CPF|186.091.390-34]].
+
+CLÁUSULA QUARTA. A LOCATÁRIA declara que residirá no imóvel com seu companheiro, [[PESSOA|Caio Henrique Lacerda]].
+
+CLÁUSULA QUINTA. Fica eleito o foro de Brasília/DF.
+
+Brasília, 20 de junho de 2026.
+
+_______________________________
+[[PESSOA|Altamiro José Borges]]
+
+_______________________________
+[[PESSOA|Yasmin Carvalho Rezende]]
+
+_______________________________
+[[PESSOA|Ronaldo Rezende]]
+
+Testemunhas:
+1. [[PESSOA|Lindomar Pacheco]], CPF [[CPF|993.518.190-19]]
+2. [[PESSOA|Giselle Furtado]], CPF [[CPF|937.865.797-41]]

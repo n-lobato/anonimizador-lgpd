@@ -15,7 +15,7 @@ TIPOS: dict[str, tuple[str, str]] = {
     "CTPS": ("CTPS", "CTPS"),
     "PASSAPORTE": ("Passaporte", "PASSAPORTE"),
     "OAB": ("Inscrição na OAB", "OAB"),
-    "MATRICULA": ("Matrícula (funcional, SIAPE, imóvel)", "MATRICULA"),
+    "MATRICULA": ("Matrícula ou registro profissional (SIAPE, imóvel, CRM, CREA...)", "MATRICULA"),
     "CNPJ": ("CNPJ", "CNPJ"),
     "PROCESSO": ("Número de processo (padrão CNJ)", "PROCESSO"),
     "EMAIL": ("E-mail", "EMAIL"),

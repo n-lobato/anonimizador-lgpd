@@ -1,0 +1,31 @@
+MINISTÉRIO DA SAÚDE
+SUPERINTENDÊNCIA ESTADUAL NO DISTRITO FEDERAL
+
+RELATÓRIO FINAL DE SINDICÂNCIA INVESTIGATIVA
+Portaria nº 112, de 8 de janeiro de 2026
+
+1. INTRODUÇÃO
+
+A Comissão de Sindicância, composta pelos servidores [[PESSOA|Cristiane Moura Vasconcelos]] (presidente), SIAPE [[MATRICULA|1876543]], e [[PESSOA|Haroldo Pimentel]] (membro), SIAPE [[MATRICULA|2034112]], apresenta o relatório final dos trabalhos.
+
+2. DOS FATOS
+
+Em 14 de novembro de 2025, a servidora [[PESSOA|LUANA BEATRIZ QUEIROZ]] comunicou à chefia o desaparecimento de dois notebooks do setor de patrimônio. Os registros de acesso à rede indicam login a partir do endereço IP [[IP|189.6.45.112]] fora do horário de expediente, vinculado ao usuário do servidor [[PESSOA|Edmilson Fagundes]].
+
+Ouvido pela Comissão, o servidor [[PESSOA|Edmilson]] negou a autoria e afirmou que emprestava sua senha ao colega [[PESSOA|Wesley Prates]], o que este confirmou. A Coordenação-Geral de Tecnologia da Informação informou que o equipamento foi localizado na sala da Divisão de Convênios.
+
+3. ANÁLISE
+
+A Comissão observa que o compartilhamento de senhas viola a Política de Segurança da Informação do órgão e a Lei Geral de Proteção de Dados. Não há, contudo, prova de subtração dos bens.
+
+4. CONCLUSÃO
+
+Diante do exposto, a Comissão sugere o arquivamento quanto à subtração e a instauração de processo administrativo disciplinar em face de [[PESSOA|Edmilson Fagundes]] e [[PESSOA|Wesley Prates]] pelo compartilhamento de credenciais.
+
+Brasília, 27 de fevereiro de 2026.
+
+[[PESSOA|Cristiane Moura Vasconcelos]]
+Presidente da Comissão
+
+[[PESSOA|Haroldo Pimentel]]
+Membro

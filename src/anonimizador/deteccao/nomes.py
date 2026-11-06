@@ -44,7 +44,15 @@ PAPEIS = (
     r"defensor[a]?(?:\s+publico|\s+publica)?|escriva[oa]?|perit[oa]|assistente|secretari[oa]|"
     r"relator[a]?|desembargador[a]?|ministr[oa]|delegad[oa]|agente|escrevente|tabeli[aã]o|"
     r"sr|sra|srta|dr|dra|exmo|exma|ilmo|ilma|prof|profa|senhor|senhora|doutor|doutora|dona|"
-    r"prezad[oa]|car[oa]"
+    r"prezad[oa]|car[oa]|"
+    # profissões, funções e relações pessoais ("o engenheiro Fulano", "a vizinha Fulana")
+    r"engenheir[oa]|medic[oa]|enfermeir[oa]|arquitet[oa]|corretor[a]?|motorista|sindic[oa]|"
+    r"coordenador[a]?|diretor[a]?|gerente|supervisor[a]?|tecnic[oa]|analista|condomin[oa]|"
+    r"morador[a]?|vizinh[oa]|colega|conselheir[oa]|estudante|funcionari[oa]|colaborador[a]?|"
+    r"estagiari[oa]|usuari[oa]|prepost[oa]|sobrinh[oa]|irma[o]?|ti[oa]|avo|net[oa]|"
+    r"namorad[oa]|noiv[oa]|amig[oa]|cunhad[oa]|genro|nora|sogr[oa]|prim[oa]|membro|"
+    r"sindicante|sindicad[oa]|acompanhante|motoboy|porteir[oa]|zelador[a]?|cuidador[a]?|"
+    r"contador[a]?|psicolog[oa]|assistente\s+social|cliente|paciente"
 )
 CONTEXTO_ANTES = re.compile(r"(?:^|[^\w])(?:" + PAPEIS + r")\.?\s*(?:\(?a\)?\s*)?[:,\-–]?\s*$")
 CONTEXTO_DEPOIS = re.compile(
@@ -53,7 +61,64 @@ CONTEXTO_DEPOIS = re.compile(
     r"portador[a]?|inscrit[oa]|nascid[oa]|natural\s+de|residente|domiciliad[oa]|cpf|rg|oab|"
     r"filh[oa]\s+de|advogad[oa]|matricula|servidor[a]?|militar|empresari[oa]|aposentad[oa]|"
     r"do\s+lar|estudante|qualificad[oa]|ja\s+qualificad[oa]|(?:autor|re|reu|requerente|"
-    r"requerid[oa]|testemunha|depoente|declarante)\b)")
+    r"requerid[oa]|testemunha|depoente|declarante)\b"
+    # coluna de tabela seguida de CPF ("Dagoberto Lins | 168.976.846-00")
+    r"|[|;\t]\s*\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b)")
+
+
+APELIDO = re.compile(
+    r"(?:vulgo|alcunha|conhecid[oa]s?(?:\s+[^\W\d_]+){0,3}?\s+(?:como|por)|chamad[oa]s?\s+de|apelidad[oa]s?\s+de|"
+    r"apelido\s+(?:de\s+)?|chama[mr]?\s+(?:ele|ela|o|a)?\s*de)\s*[\"'“‘]?\s*$")
+
+# Cargos e rótulos que costumam vir na linha logo abaixo de um nome assinado.
+CARGO_ASSINATURA = re.compile(
+    r"^\s*(?:juiz[a]?|desembargador[a]?|ministr[oa]|defensor[a]?|promotor[a]?|procurador[a]?|"
+    r"advogad[oa]|delegad[oa]|escriva[oa]?|escrevente|tabeli[aã]o|oficial|perit[oa]|"
+    r"sindic[oa]|secretari[oa]|presidente|vice|membro|relator[a]?|conselheir[oa]|tesoureir[oa]|"
+    r"diretor[a]?|coordenador[a]?|gerente|chefe|comandante|superintendente|reitor[a]?|"
+    r"professor[a]?|analista|assistente|tecnic[oa]|servidor[a]?|agente|inspetor[a]?|"
+    r"engenheir[oa]|medic[oa]|contador[a]?|prefeit[oa]|vereador[a]?|deputad[oa]|senador[a]?|"
+    r"testemunha|locador[a]?|locatari[oa]|fiador[a]?|outorgante|outorgad[oa]|contratante|"
+    r"contratad[oa]|vendedor[a]?|comprador[a]?|representante|responsavel|"
+    r"cpf|rg|oab|matricula|siape|cress|crm|crea|coren|crc)\b")
+
+
+# "Câmara dos Deputados", "Câmara Municipal": aí a palavra é instituição, não sobrenome
+INSTITUICAO_DEPOIS = re.compile(
+    r"\s+(?:dos\s+deputados|dos\s+vereadores|municipal|legislativa|distrital|federal|"
+    r"estadual|de\s+comercio|de\s+vereadores|criminal|civel|tecnica|regional|setorial)\b")
+
+# Prenomes que também são palavras comuns: com artigo, quase sempre não são pessoa
+PRENOMES_AMBIGUOS = {"rosa", "clara", "vitoria", "gloria", "graca", "luz", "paz", "aurora", "natal",
+                     "serena", "flor", "esperanca", "fe", "mar", "rio", "jardim", "pascoa", "cruz",
+                     "marco", "franco", "leal", "bento", "dores", "socorro", "neves", "milagres",
+                     "estrela", "liberdade", "ventura", "dia"}
+
+TRATAMENTOS_PESSOA = {"sr", "sra", "srta", "dr", "dra", "dona", "senhor", "senhora", "doutor", "doutora"}
+
+# Depois de "conhecido como", palavras que indicam coisa, não pessoa
+NAO_APELIDO = {"plano", "operacao", "programa", "projeto", "lei", "caso", "pacote", "reforma",
+               "regime", "acordo", "tratado", "movimento", "grupo", "bloco", "festa", "evento"}
+
+
+def _linha_de_assinatura(texto: str, ini: int, fim: int) -> bool:
+    """Nome sozinho na linha, com cargo/documento na linha seguinte ou traço de assinatura acima."""
+    ini_linha = texto.rfind("\n", 0, ini) + 1
+    fim_linha = texto.find("\n", fim)
+    fim_linha = len(texto) if fim_linha < 0 else fim_linha
+    if texto[ini_linha:ini].strip() or texto[fim:fim_linha].strip(" \t,.;"):
+        return False
+    seguinte = texto[fim_linha + 1:texto.find("\n", fim_linha + 1) if texto.find("\n", fim_linha + 1) >= 0 else len(texto)]
+    if CARGO_ASSINATURA.match(normalizar(seguinte)):
+        return True
+    anterior_fim = ini_linha - 1
+    anterior = texto[texto.rfind("\n", 0, max(0, anterior_fim)) + 1:max(0, anterior_fim)]
+    return re.fullmatch(r"\s*[_\-–.]{5,}\s*", anterior or "") is not None
+
+
+def _conhecido(n: str, conjunto: set[str]) -> bool:
+    """Palavra conhecida; em nomes com hífen (Jean-Pierre), basta uma das partes."""
+    return n in conjunto or ("-" in n and any(p in conjunto for p in n.split("-") if p))
 
 
 def _norm(p: str) -> str:
@@ -103,7 +168,11 @@ def _subsequencias(seq: list[re.Match]) -> Iterator[tuple[list[re.Match], str]]:
     anterior = ""
     for m in seq:
         n = _norm(m.group())
-        if n in PALAVRAS_COMUNS and n not in PRENOMES:
+        uteis = [_norm(x.group()) for x in bloco if _norm(x.group()) not in PARTICULAS]
+        sobrenome_ambiguo = n in SOBRENOMES and uteis and _conhecido(uteis[0], PRENOMES) \
+            and _norm(bloco[-1].group()) not in PARTICULAS \
+            and not INSTITUICAO_DEPOIS.match(normalizar(m.string[m.end():m.end() + 30]))
+        if n in PALAVRAS_COMUNS and n not in PRENOMES and not sobrenome_ambiguo:
             if bloco:
                 yield bloco, anterior
             bloco = []
@@ -158,28 +227,48 @@ def _avaliar(texto: str, bloco: list[re.Match], comum_antes: str) -> Achado | No
     linha = texto[texto.rfind("\n", 0, ini) + 1:ini]
     inicio_linha = re.fullmatch(r"[ \t\-–•\d.)]*", linha) is not None
     rotulo_fala = inicio_linha and re.match(r"\s*:", texto[fim:fim + 3]) is not None
+    # "o Josias", "a Kethellen": artigo + prenome isolado, comum em conversas e depoimentos
+    artigo_prenome = len(nomes) == 1 and _conhecido(nomes[0], PRENOMES) and not trecho.isupper() \
+        and re.search(r"(?:^|[\s(\"“])(?:o|a)\s+$", texto[max(0, ini - 4):ini]) is not None \
+        and not re.match(r"\s+[A-ZÀ-Ú]", texto[fim:fim + 3]) \
+        and nomes[0] not in PRENOMES_AMBIGUOS
+    apelido = bool(APELIDO.search(antes)) and nomes[0] not in PALAVRAS_LUGAR \
+        and nomes[0] not in NAO_APELIDO
+    assinatura = _linha_de_assinatura(texto, ini, fim)
+    # "DISTRIBUIDORA CENTRO-OESTE DE ALIMENTOS LTDA" é empresa, não pessoa
+    if re.match(r"\s*[-–,]?\s*(?:LTDA|Ltda|S\.\s?A\.?|S/A|EIRELI|Eireli|EPP|ME)\b", texto[fim:fim + 12]):
+        return None
 
-    conhecidos = sum(1 for n in nomes if n in PRENOMES or n in SOBRENOMES)
-    primeiro_prenome = nomes[0] in PRENOMES
+    conhecidos = sum(1 for n in nomes if _conhecido(n, PRENOMES) or _conhecido(n, SOBRENOMES))
+    primeiro_prenome = _conhecido(nomes[0], PRENOMES)
 
     if len(nomes) >= 2:
         if primeiro_prenome:
             conf = 0.95 if (papel or qualificacao or tratamento) else 0.9
         elif conhecidos >= 2:
             conf = 0.8
-        elif papel or qualificacao or tratamento or rotulo_fala:
+        elif papel or qualificacao or tratamento or rotulo_fala or apelido or assinatura:
             conf = 0.75
         else:
             return None
     else:
-        if not (nomes[0] in PRENOMES or nomes[0] in SOBRENOMES):
+        if apelido and nomes[0] not in PALAVRAS_LUGAR and nomes[0] not in NAO_APELIDO:
+            return Achado(ini, fim, "PESSOA", trecho, 0.7, "apelido")
+        if not (_conhecido(nomes[0], PRENOMES) or _conhecido(nomes[0], SOBRENOMES)):
+            # "dona Lurdes", "Sr. Wendson": tratamento de pessoa autoriza nome raro isolado
+            # ("seu" fica de fora: também é pronome possessivo)
+            if antes_palavra in TRATAMENTOS_PESSOA and nomes[0] not in PALAVRAS_COMUNS \
+                    and not trecho.isupper():
+                return Achado(ini, fim, "PESSOA", trecho, 0.65, "nome")
             if not (rotulo_fala and qualificacao):
                 return None
         if tratamento:
             conf = 0.8
-        elif rotulo_fala and nomes[0] in PRENOMES:
+        elif rotulo_fala and _conhecido(nomes[0], PRENOMES):
             conf = 0.75
-        elif papel and nomes[0] in PRENOMES and re.search(r"[:,]\s*$", antes):
+        elif artigo_prenome:
+            conf = 0.6
+        elif papel and _conhecido(nomes[0], PRENOMES):
             conf = 0.7
         else:
             return None

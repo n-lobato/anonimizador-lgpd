@@ -1,0 +1,21 @@
+TRANSCRIÇÃO DE DEPOIMENTO
+Inquérito Policial nº [[?PROCESSO|3442936-75.2025.8.07.0001]]
+Delegacia: 12ª DP (Taguatinga Centro)
+
+DELEGADA: Bom dia. Informe seu nome completo, por favor.
+DEPOENTE: [[PESSOA|Marcelo Augusto Teixeira]].
+DELEGADA: Data de nascimento?
+DEPOENTE: Dia [[DATA_NASCIMENTO|2 de fevereiro de 1988]].
+DELEGADA: O senhor conhece o investigado, [[PESSOA|Jhonatan Ribeiro Mota]]?
+DEPOENTE: Conheço. Todo mundo chama ele de [[PESSOA|Tchelo]]. Ele mora perto da Praça do Relógio, ali na [[ENDERECO|QNA 30]].
+DELEGADA: O que o senhor viu no dia dos fatos?
+DEPOENTE: Eu estava no bar do seu [[PESSOA|Raimundo]], na avenida Comercial. O [[PESSOA|Jhonatan]] chegou numa moto, placa [[PLACA|JKL-4567]], com outro rapaz, o [[PESSOA|Kauan]].
+DELEGADA: O senhor sabe o nome completo desse outro rapaz?
+DEPOENTE: Acho que é [[PESSOA|Kauan Batista]]. Ele é sobrinho da dona [[PESSOA|Cleide]].
+[[PESSOA|MARCELO]]: Posso falar uma coisa? Eu tenho medo, doutora.
+DELEGADA: Pode. Seu endereço fica preservado.
+[[PESSOA|MARCELO]]: Eles mandaram mensagem no meu número, [[TELEFONE|61 99633-1180]], dizendo pra eu não falar nada.
+DELEGADA: O senhor pode nos mostrar essa mensagem?
+DEPOENTE: Posso. Tá aqui.
+
+(Encerrado às 11h14. Transcrito por Agente [[PESSOA|Sávio Nunes]], matrícula [[MATRICULA|244.091-3]].)

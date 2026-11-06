@@ -1,0 +1,41 @@
+De: [[PESSOA|Patrícia Oliveira Duarte]] <[[EMAIL|patricia.duarte@construtoraalvorada.com.br]]>
+Para: Departamento Pessoal <[[?EMAIL|dp@construtoraalvorada.com.br]]>
+Assunto: Admissão - documentos pendentes
+Data: 3 de setembro de 2026 14:02
+
+Boa tarde, pessoal.
+
+Segue a documentação do novo auxiliar de obras, [[PESSOA|Gleison Ramos Feitosa]]. Faltam só o comprovante de residência e a foto 3x4.
+
+Nome: [[PESSOA|Gleison Ramos Feitosa]]
+CPF: [[CPF|757.491.186-06]]
+PIS: [[PIS|159.01396.24-7]]
+Título de eleitor: [[TITULO_ELEITOR|0294 1188 2053]]
+Data de nascimento: [[DATA_NASCIMENTO|29/01/2001]]
+Endereço: [[ENDERECO|Quadra 205, Conjunto 3, Casa 11]], Recanto das Emas/DF
+Celular: [[TELEFONE|(61) 98877-6655]]
+
+Ele vai ficar na equipe do mestre de obras Seu [[PESSOA|Juarez]], no canteiro da Avenida Pau-Brasil.
+
+Abraços,
+[[PESSOA|Patrícia]]
+
+-----
+
+De: Departamento Pessoal
+Para: [[PESSOA|Patrícia Oliveira Duarte]]
+Assunto: RE: Admissão - documentos pendentes
+
+Oi, [[PESSOA|Patrícia]]! Recebido. Só um detalhe: o banco da folha é o Bradesco. Se o [[PESSOA|Gleison]] já tiver conta, pode mandar os dados?
+
+Att.,
+[[PESSOA|Rayssa Montalvão]]
+Analista de Departamento Pessoal
+Ramal 2231
+
+-----
+
+De: [[PESSOA|Patrícia Oliveira Duarte]]
+Assunto: RE: RE: Admissão - documentos pendentes
+
+[[PESSOA|Rayssa]], ele tem sim: Bradesco, ag. [[CONTA_BANCARIA|1987]], c/c [[CONTA_BANCARIA|0044521-3]]. O cartão que ele usa pro vale é o [[CARTAO|4414 8525 3888 5399]], mas acho que isso nem precisa.

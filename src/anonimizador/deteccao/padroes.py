@@ -82,9 +82,25 @@ CEP = [
     re.compile(r"(?<!\w)CEP\s*[:\-–]?\s*(?:" + NUM + r"\s*)?(?P<v>\d{8})(?!\d)", I),
 ]
 DATA_NASC = re.compile(
-    r"(?:nascid[oa]s?\s+(?:em|aos|no\s+dia|a)|data\s+de\s+nascimento|dt\.?\s*nasc\.?|nasc\.)"
-    r"\s*[:\-–]?\s*(?:em\s+)?"
+    r"(?:nascid[oa]s?\s+(?:em|aos|no\s+dia|a)|nasceu\s+(?:em|no\s+dia)|data\s+de\s+nascimento|"
+    r"(?<![\w ])nascimento\s*:|"
+    r"dt\.?\s*nasc\.?|nasc\.)"
+    r"\s*[:\-–?]?\s*(?:\n[^\n:]{0,30}:\s*)?(?:(?:no\s+)?dia\s+)?(?:em\s+)?"
     r"(?P<v>\d{1,2}[/.\-]\d{1,2}[/.\-]\d{2,4}|\d{1,2}º?\s+de\s+[a-zç]+\s+de\s+\d{4})", I)
+_MESES = r"(?:janeiro|fevereiro|mar[çc]o|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)"
+# Modelo de certidão do CNJ: "DATA DE NASCIMENTO POR EXTENSO" e a tabela "DIA MÊS ANO"
+DATA_NASC_CERTIDAO = [
+    re.compile(r"data\s+de\s+nascimento\s+por\s+extenso\s*[:\-–]?\s*\n?\s*"
+               r"(?P<v>[a-zà-úç]+(?:\s+e\s+[a-zà-úç]+)?\s+de\s+" + _MESES +
+               r"\s+de\s+(?:[a-zà-úç]+(?:\s+e\s+|\s+)){0,6}[a-zà-úç]+|\d{1,2}\s+de\s+" + _MESES +
+               r"\s+de\s+\d{4})", I),
+    re.compile(r"nascimento[\s\S]{0,200}?\bdia\s+m[êe]s\s+ano\s*\n\s*"
+               r"(?P<v>\d{1,2}[ \t]+\d{1,2}[ \t]+\d{4})(?!\d)", I),
+]
+# Registros em conselhos profissionais (CRM, CREA, CRESS, OAB fica à parte)
+REGISTRO_PROFISSIONAL = re.compile(
+    r"(?<!\w)(?:CRM|CREA|CRESS|COREN|CRC|CRP|CRO|CREFITO|CRF|CRMV|CRN|CAU)\s*[/\-–]?\s*"
+    r"(?:[A-Z]{2}(?![a-z]))?\s*(?:" + NUM + r"\s*|:\s*)?(?P<v>\d[\d.\-]{1,10}\d)(?!\d)", I)
 PLACA = re.compile(
     r"(?:placas?|ve[íi]culo|carro|moto(?:cicleta)?|autom[óo]vel|caminh[ãa]o)[^\n]{0,40}?"
     r"(?<![A-Za-z0-9])(?P<v>(?-i:[A-Z]{3}\s?-?\s?\d[A-Z0-9]\d{2}))(?![A-Za-z0-9])", I)
@@ -169,6 +185,9 @@ def _enderecos(texto: str) -> Iterator[Achado]:
             continue  # "residente em Brasília/DF" não é endereço completo
         if not tem_numero and not re.match(r"\S+\s+(?:d[aoe]s?\s+)?[A-ZÀ-Ú]", trecho):
             continue
+        if not tem_numero and normalizar(palavras[0]).rstrip(".") in (
+                "condominio", "residencial", "loteamento", "conjunto", "quadra", "qd", "conj"):
+            continue
         vistos.append((ini, fim))
         yield Achado(ini, fim, "ENDERECO", trecho, 0.85 if tem_numero else 0.7, "endereço")
 
@@ -218,6 +237,9 @@ def detectar_padroes(texto: str, tipos: set[str] | None = None) -> list[Achado]:
     for tipo, rx in simples:
         if quer(tipo):
             r.extend(_grupo(m, tipo, 0.9) for m in rx.finditer(texto))
+    if quer("DATA_NASCIMENTO"):
+        for rx in DATA_NASC_CERTIDAO:
+            r.extend(_grupo(m, "DATA_NASCIMENTO", 0.9) for m in rx.finditer(texto))
     if quer("PIS"):
         for m in PIS.finditer(texto):
             r.append(_grupo(m, "PIS", 1.0 if pis_valido(m.group("v")) else 0.8))
@@ -227,6 +249,7 @@ def detectar_padroes(texto: str, tipos: set[str] | None = None) -> list[Achado]:
     if quer("MATRICULA"):
         for rx in MATRICULA:
             r.extend(_grupo(m, "MATRICULA", 0.85) for m in rx.finditer(texto))
+        r.extend(_grupo(m, "MATRICULA", 0.85) for m in REGISTRO_PROFISSIONAL.finditer(texto))
     if quer("PROCESSO"):
         for m in PROCESSO.finditer(texto):
             r.append(_grupo(m, "PROCESSO", 1.0 if processo_cnj_valido(m.group()) else 0.9))
