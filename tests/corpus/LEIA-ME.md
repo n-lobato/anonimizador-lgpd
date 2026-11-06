@@ -28,3 +28,19 @@ dos dois sentidos.
 O relatório mostra, por tipo de dado, quantos foram totalmente cobertos,
 quantos vazaram em parte e quantos passaram inteiros, além das marcações
 indevidas (falsos positivos).
+
+## Histórico das medições
+
+Um grupo de validação só mede de forma independente **antes** de ser usado
+para corrigir o programa. Depois disso, ele vira material de desenvolvimento
+e é preciso escrever documentos novos para medir de novo.
+
+| Data | Grupo de validação | v1.0.0 | Após ajustes | Observação |
+|---|---|---|---|---|
+| nov/2026 | 1º grupo (sentença, e-mails, procuração, certidão, ata escolar, relatório social) | 94% | 94% | medido antes de olhar os erros; depois usado para corrigir e movido para `desenvolvimento/` |
+| nov/2026 | 2º grupo, atual (boletim, WhatsApp, laudo, ofício, acordo, lista de presença) | 91% | 93% | número de referência do README; depois usado para corrigir |
+
+Para a próxima medição independente, escreva documentos novos em `validacao/`
+(e mova os atuais para `desenvolvimento/`) **antes** de alterar a detecção.
+O ideal é usar modelos dos documentos que você realmente anonimiza, com
+dados trocados por fictícios.
