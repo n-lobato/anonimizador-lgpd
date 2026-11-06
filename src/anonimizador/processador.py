@@ -114,7 +114,8 @@ class Sessao:
             try:
                 ext = mod.extrair(str(arq.caminho), opcoes)
                 arq.texto, arq.cache, arq.avisos = ext.texto, ext.cache, list(ext.avisos)
-                for achado in detector.detectar(arq.texto):
+                juntar = getattr(mod, "JUNTAR_LINHAS", False)
+                for achado in detector.detectar(arq.texto, juntar_linhas=juntar):
                     self.registro.registrar(achado, arq.chave)
                 arq.status = "analisado"
             except ErroFormato as e:

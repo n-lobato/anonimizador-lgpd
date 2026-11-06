@@ -194,6 +194,7 @@ comissao conselho comite colegiado plenario sessao reuniao pauta ordem dia abert
 encerrada lavrada lida aprovada
 objeto conclusao introducao resumo relatorio voto ementa dispositivo fundamentacao
 nota tecnica parecer oficio memorando despacho informacao
+avos paternos maternos filiacao genitores assunto anexos remetente destinatario
 representante representantes legal responsavel recursos humanos pessoal administrativo administrativa financeiro financeira juridico juridica
  dona
 """.split())

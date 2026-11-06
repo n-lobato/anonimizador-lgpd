@@ -10,6 +10,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from . import ErroFormato, Extraido, Opcoes
+
+# texto em linhas físicas: a detecção também junta as quebras de linha do parágrafo
+JUNTAR_LINHAS = True
 from .ocr import localizar_tessdata
 
 

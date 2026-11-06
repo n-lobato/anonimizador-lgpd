@@ -67,3 +67,29 @@ def test_onze_digitos_de_cnh_nao_e_cpf():
 def test_tipos_desligados(peticao):
     r = _por_tipo(peticao, tipos={"CPF"})
     assert set(r) == {"CPF"}
+
+
+def test_nome_endereco_e_numero_quebrados_entre_linhas():
+    texto = ("Foram eleitos para o conselho fiscal: Ana Lima, Ubiratan\nSilveira e Thaís Prado. O fiador\n"
+             "reside na Rua das\nPaineiras, nº 1.040, apto 1203. Testemunha com PIS\n215.90109.28-9.\n\n"
+             "MARIA:\nConfirmo.")
+    so_linhas = {a.texto for a in Detector().detectar(texto)}
+    juntas = {a.texto.replace("\n", " ") for a in Detector().detectar(texto, juntar_linhas=True)}
+    assert "Ubiratan Silveira" not in so_linhas  # comportamento anterior
+    assert "Ubiratan Silveira" in juntas
+    assert any(t.startswith("Rua das Paineiras, nº 1.040") for t in juntas)
+    assert "215.90109.28-9" in juntas
+    assert "MARIA" in juntas  # rótulo de fala no início da linha continua reconhecido
+
+
+def test_email_lido_pelo_ocr():
+    r = _por_tipo("abigail.fonteneleQeconomia.df.gov.br; chave marilda.vileladgmail.com; "
+                  "joao(@)uol.com.br. Site: www.tjdft.jus.br e gov.br. Questão: QUESTÃO 3.")
+    assert r["EMAIL"] == ["abigail.fonteneleQeconomia.df.gov.br", "marilda.vileladgmail.com", "joao(@)uol.com.br"]
+
+
+def test_juntar_linhas_nao_estende_nome_ja_encontrado():
+    texto = "Para: Patrícia Oliveira Duarte\nAssunto: Admissão\n\nAVÓS\nPaternos: GERALDO MONTEIRO"
+    nomes = [a.texto for a in Detector().detectar(texto, juntar_linhas=True) if a.tipo == "PESSOA"]
+    assert "Patrícia Oliveira Duarte" in nomes and "GERALDO MONTEIRO" in nomes
+    assert not any("Assunto" in n or "AVÓS" in n for n in nomes)

@@ -68,6 +68,12 @@ MATRICULA = [
 PROCESSO = re.compile(
     r"(?<![\d.\-])\d{7} ?-? ?\d{2} ?\.? ?\d{4} ?\.? ?\d ?\.? ?\d{2} ?\.? ?\d{4}(?![\d])")
 EMAIL = re.compile(r"(?<![\w.+-])[\w.+-]+@[\w-]+(?:\.[\w-]+)+(?<!\.)")
+# O OCR em português costuma ler o "@" como "Q", "©" ou "(@)" ...
+EMAIL_OCR = re.compile(r"(?<![\w.+-])[a-z0-9._+-]*[a-z][a-z0-9._+-]*(?:Q|©|\(@\))[a-z0-9-]+(?:\.[a-z0-9-]+)+(?<!\.)")
+# ... ou como "d", que só é aceito antes de provedores conhecidos (evita confundir com sites)
+EMAIL_OCR_D = re.compile(
+    r"(?<![\w.+-])[a-z0-9._+-]*[a-z][a-z0-9._+-]*d(?:gmail|hotmail|yahoo|outlook|uol|bol|terra|icloud|live|msn|ig)"
+    r"\.com(?:\.br)?(?![\w.])")
 TELEFONES = [
     re.compile(r"(?<![\w+])(?:\+\s?55\s?)?\(\s?0?\d{2}\s?\)\s?(?:9\s?)?\d{4}[-\s.]?\d{4}(?!\d)"),
     re.compile(r"(?<![\w+])\+\s?55\s?\d{2}\s?(?:9\s?)?\d{4}[-\s.]?\d{4}(?!\d)"),
@@ -255,6 +261,8 @@ def detectar_padroes(texto: str, tipos: set[str] | None = None) -> list[Achado]:
             r.append(_grupo(m, "PROCESSO", 1.0 if processo_cnj_valido(m.group()) else 0.9))
     if quer("EMAIL"):
         r.extend(_grupo(m, "EMAIL") for m in EMAIL.finditer(texto))
+        r.extend(_grupo(m, "EMAIL", 0.8, "e-mail lido pelo OCR") for m in EMAIL_OCR.finditer(texto))
+        r.extend(_grupo(m, "EMAIL", 0.75, "e-mail lido pelo OCR") for m in EMAIL_OCR_D.finditer(texto))
     if quer("TELEFONE"):
         for rx in TELEFONES:
             r.extend(_grupo(m, "TELEFONE", 0.9) for m in rx.finditer(texto))

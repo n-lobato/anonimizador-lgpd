@@ -227,3 +227,15 @@ def test_pdf_nome_que_so_aparece_em_comentario(tmp_path):
     out = fitz.open(s.arquivos[0].saida)
     conteudos = [a.info.get("content", "") for a in out[0].annots() or []]
     assert conteudos and all("Kauã" not in c and "529.982" not in c for c in conteudos)
+
+
+@precisa_pdf
+def test_pdf_nome_quebrado_entre_linhas_recebe_tarja(tmp_path):
+    f = tmp_path / "quebrado.pdf"
+    _pdf_texto(f, ["Foram eleitos para o conselho fiscal os condôminos Ubiratan",
+                   "Silveira e Thaís Regina Prado, com mandato de dois anos."])
+    s = _rodar([f])
+    assert not s.arquivos[0].erro, s.arquivos[0].erro
+    texto = fitz.open(s.arquivos[0].saida)[0].get_text()
+    assert "Ubiratan" not in texto and "Silveira" not in texto and "Thaís" not in texto
+    assert "conselho fiscal" in texto
