@@ -46,7 +46,9 @@ class Detector:
         achados = self._detectar(texto)
         if juntar_linhas and "\n" in texto:
             # mesma quantidade de caracteres: as posições continuam valendo no original
-            junto = re.sub(r"(?<![\n\f])\n(?![\n\f])", " ", texto)
+            # junta uma ou duas quebras (muitos PDFs trazem cada linha como um bloco),
+            # menos depois de pontuação que encerra frase ou rótulo
+            junto = re.sub(r"(?<![.!?:;\n\f])\n{1,2}(?![\n\f])", lambda m: " " * len(m.group()), texto)
             if junto != texto:
                 # só preenche lacunas: onde a leitura normal já achou algo, ela prevalece
                 # (evita "Patrícia Duarte" + "Assunto:" da linha de baixo virar um nome só)

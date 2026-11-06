@@ -108,7 +108,9 @@ def _linha_de_assinatura(texto: str, ini: int, fim: int) -> bool:
     fim_linha = len(texto) if fim_linha < 0 else fim_linha
     if texto[ini_linha:ini].strip() or texto[fim:fim_linha].strip(" \t,.;"):
         return False
-    seguinte = texto[fim_linha + 1:texto.find("\n", fim_linha + 1) if texto.find("\n", fim_linha + 1) >= 0 else len(texto)]
+    # próxima linha com texto (PDFs costumam trazer uma linha em branco entre nome e cargo)
+    resto = texto[fim_linha + 1:fim_linha + 400].split("\n")
+    seguinte = next((l for l in resto[:3] if l.strip()), "")
     if CARGO_ASSINATURA.match(normalizar(seguinte)):
         return True
     anterior_fim = ini_linha - 1
