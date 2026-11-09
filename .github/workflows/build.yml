@@ -68,13 +68,62 @@ jobs:
           Copy-Item README.md, LICENSE dist\AnonimizadorLGPD\
           Compress-Archive -Path dist\AnonimizadorLGPD -DestinationPath AnonimizadorLGPD-windows.zip
 
-      - name: Calcular SHA-256 do pacote
+      - name: Ler a versão do programa
         shell: pwsh
         run: |
-          $h = (Get-FileHash AnonimizadorLGPD-windows.zip -Algorithm SHA256).Hash.ToLower()
-          "$h  AnonimizadorLGPD-windows.zip" | Out-File -Encoding ascii -NoNewline AnonimizadorLGPD-windows.zip.sha256
-          "SHA256=$h" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
-          Write-Output "SHA-256: $h"
+          $v = (Select-String -Path src/anonimizador/__init__.py -Pattern '__version__ = "(.+)"').Matches[0].Groups[1].Value
+          "VERSAO=$v" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
+          Write-Output "Versão: $v"
+
+      - name: Gerar o instalador (Inno Setup)
+        shell: pwsh
+        run: |
+          choco install innosetup -y --no-progress
+          $iscc = @("${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe", "$env:ProgramFiles\Inno Setup 6\ISCC.exe",
+                    "$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe") | Where-Object { Test-Path $_ } | Select-Object -First 1
+          if (-not $iscc) { throw "Inno Setup 6 não encontrado" }
+          Write-Output "Inno Setup: $iscc"
+          & $iscc /Q "/DVersao=$env:VERSAO" "/DOrigem=$PWD\dist\AnonimizadorLGPD" build\instalador.iss
+          if ($LASTEXITCODE -ne 0) { throw "Inno Setup falhou" }
+          Move-Item dist\AnonimizadorLGPD-windows-instalador.exe .
+
+      - name: Testar o instalador (instalar, usar e desinstalar)
+        shell: pwsh
+        run: |
+          Start-Process -Wait -FilePath .\AnonimizadorLGPD-windows-instalador.exe -ArgumentList '/VERYSILENT', '/SUPPRESSMSGBOXES', '/CURRENTUSER', '/NORESTART'
+          $pasta = "$env:LOCALAPPDATA\Programs\Anonimizador LGPD"
+          if (-not (Test-Path "$pasta\AnonimizadorLGPD.exe")) { throw "Instalador não colocou o programa em $pasta" }
+          $chave = Get-ChildItem HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall |
+                   Where-Object { $_.GetValue('DisplayName') -eq 'Anonimizador LGPD' }
+          if (-not $chave) { throw "O programa não aparece em Aplicativos instalados" }
+          Write-Output ("Aplicativos instalados: {0} {1}" -f $chave.GetValue('DisplayName'), $chave.GetValue('DisplayVersion'))
+          if (-not (Test-Path "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Anonimizador LGPD.lnk")) { throw "Atalho do menu Iniciar não foi criado" }
+          New-Item -ItemType Directory -Force amostra_inst | Out-Null
+          "Requerente: Pedro Henrique Alves, CPF 529.982.247-25." | Out-File -Encoding utf8 amostra_inst\teste.txt
+          & "$pasta\anonimizador-cli.exe" amostra_inst
+          if ($LASTEXITCODE -ne 0) { throw "CLI instalada falhou" }
+          $saida = Get-Content amostra_inst\anonimizados\teste_anonimizado.txt -Raw
+          Write-Output $saida
+          if ($saida -match "529.982" -or $saida -match "Pedro") { throw "Programa instalado não anonimizou" }
+          $desinst = Get-ChildItem "$pasta\unins*.exe" | Select-Object -First 1
+          Start-Process -Wait -FilePath $desinst.FullName -ArgumentList '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART'
+          Start-Sleep -Seconds 5
+          if (Test-Path "$pasta\AnonimizadorLGPD.exe") { throw "Desinstalação deixou o programa para trás" }
+          if (Test-Path "$env:APPDATA\AnonimizadorLGPD") { throw "Desinstalação deixou as configurações para trás" }
+          Write-Output "Instalar e desinstalar: OK"
+
+      - name: Calcular SHA-256 dos pacotes
+        shell: pwsh
+        run: |
+          foreach ($f in 'AnonimizadorLGPD-windows.zip', 'AnonimizadorLGPD-windows-instalador.exe') {
+            $h = (Get-FileHash $f -Algorithm SHA256).Hash.ToLower()
+            "$h  $f" | Out-File -Encoding ascii -NoNewline "$f.sha256"
+            Write-Output "$f  $h"
+          }
+          $zip = (Get-FileHash AnonimizadorLGPD-windows.zip -Algorithm SHA256).Hash.ToLower()
+          $inst = (Get-FileHash AnonimizadorLGPD-windows-instalador.exe -Algorithm SHA256).Hash.ToLower()
+          "SHA256_ZIP=$zip" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
+          "SHA256_INST=$inst" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
 
       - name: Medição de acertos no corpus
         run: python build/avaliar.py
@@ -85,13 +134,8 @@ jobs:
           path: |
             AnonimizadorLGPD-windows.zip
             AnonimizadorLGPD-windows.zip.sha256
-
-      - name: Ler a versão do programa
-        shell: pwsh
-        run: |
-          $v = (Select-String -Path src/anonimizador/__init__.py -Pattern '__version__ = "(.+)"').Matches[0].Groups[1].Value
-          "VERSAO=$v" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
-          Write-Output "Versão: $v"
+            AnonimizadorLGPD-windows-instalador.exe
+            AnonimizadorLGPD-windows-instalador.exe.sha256
 
       - name: Publicar release
         if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.publicar && github.ref == 'refs/heads/main')
@@ -101,12 +145,21 @@ jobs:
           name: ${{ format('Anonimizador LGPD {0}', env.VERSAO) }}
           target_commitish: ${{ github.sha }}
           files: |
+            AnonimizadorLGPD-windows-instalador.exe
+            AnonimizadorLGPD-windows-instalador.exe.sha256
             AnonimizadorLGPD-windows.zip
             AnonimizadorLGPD-windows.zip.sha256
           body: |
-            **SHA-256 do pacote:** `${{ env.SHA256 }}`
+            | Arquivo | Para quê |
+            | --- | --- |
+            | `AnonimizadorLGPD-windows-instalador.exe` | Instalação normal (recomendado): menu Iniciar e Aplicativos instalados, sem administrador |
+            | `AnonimizadorLGPD-windows.zip` | Versão portátil, sem instalar (pen drive) |
 
-            Para conferir no Windows: `Get-FileHash .\AnonimizadorLGPD-windows.zip -Algorithm SHA256`
+            **SHA-256**
+            - Instalador: `${{ env.SHA256_INST }}`
+            - Portátil: `${{ env.SHA256_ZIP }}`
+
+            Para conferir no Windows: `Get-FileHash .\NOME_DO_ARQUIVO -Algorithm SHA256`
           generate_release_notes: true
 
   linux:
