@@ -10,6 +10,7 @@ build/*
 !build/avaliar.py
 !build/avaliar_ocr.py
 !build/.gitkeep
+!build/instalador.iss
 *.spec.bak
 anonimizados/
 relatorio_anonimizacao_*.xlsx
