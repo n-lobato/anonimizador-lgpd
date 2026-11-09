@@ -18,15 +18,20 @@ A mesma pessoa recebe sempre o mesmo código, inclusive quando aparece de outra 
 
 > **Atenção: trocar nomes e números não garante, sozinho, que ninguém consiga descobrir de quem é o documento.** O cargo, o local, as datas e os fatos narrados podem bastar para identificar a pessoa. Pela LGPD (art. 12), o dado só deixa de ser pessoal quando a identificação não é possível por meios técnicos razoáveis. Leia o documento anonimizado inteiro antes de compartilhar e retire à mão o contexto que ainda identifique alguém.
 
-## Download
+## Download e instalação
 
-Baixe o arquivo `AnonimizadorLGPD-windows.zip` na página de [Releases](https://github.com/n-lobato/anonimizador-lgpd/releases), descompacte em qualquer pasta (ou pen drive) e execute `AnonimizadorLGPD.exe`. Não precisa instalar nada. O OCR em português já vem incluído.
+Na página de [Releases](https://github.com/n-lobato/anonimizador-lgpd/releases/latest) há duas opções, com o mesmo programa:
 
-O Windows pode mostrar o aviso "O Windows protegeu o computador", porque o executável não tem assinatura digital paga. Clique em **Mais informações** e depois em **Executar assim mesmo**.
+- **[Instalador](https://github.com/n-lobato/anonimizador-lgpd/releases/latest/download/AnonimizadorLGPD-windows-instalador.exe) (recomendado).** Instala só para o seu usuário, sem pedir senha de administrador, cria o atalho no menu Iniciar (e, se quiser, na Área de Trabalho) e aparece em **Configurações > Aplicativos > Aplicativos instalados**, de onde se desinstala. Para atualizar, basta rodar o instalador da versão nova. Ao desinstalar, as configurações do programa também são apagadas, inclusive as listas de termos próprios.
+- **[Versão portátil (.zip)](https://github.com/n-lobato/anonimizador-lgpd/releases/latest/download/AnonimizadorLGPD-windows.zip).** Descompacte em qualquer pasta (ou pen drive) e execute `AnonimizadorLGPD.exe`. Não instala nada. Para remover, apague a pasta.
+
+O OCR em português já vem incluído nas duas. Funciona no Windows 10 e 11 (64 bits).
+
+O Windows pode mostrar o aviso "O Windows protegeu o computador", porque o programa não tem assinatura digital paga. Clique em **Mais informações** e depois em **Executar assim mesmo**.
 
 ### Conferir se o arquivo é o original
 
-O pacote é gerado pelo GitHub Actions a partir do código deste repositório, e não no computador do autor. Cada versão traz, junto do .zip, o arquivo `AnonimizadorLGPD-windows.zip.sha256` com a impressão digital (hash SHA-256) do pacote. Para conferir, abra o PowerShell na pasta do download e rode:
+Os pacotes são gerados pelo GitHub Actions a partir do código deste repositório, e não no computador do autor. Cada arquivo vem acompanhado de um `.sha256` com a impressão digital (hash SHA-256) dele, que também aparece nas notas da versão. Para conferir, abra o PowerShell na pasta do download e rode (troque pelo nome do arquivo baixado):
 
 ```
 Get-FileHash .\AnonimizadorLGPD-windows.zip -Algorithm SHA256
@@ -168,7 +173,7 @@ python build/avaliar.py --detalhes    # mede os acertos no corpus de teste
 pyinstaller anonimizador.spec         # gera o executável em dist/
 ```
 
-A cada envio para o GitHub, o GitHub Actions roda os testes no Windows e no Linux e gera o executável. Ao criar uma tag `v*` (por exemplo `v1.0.0`), o .zip é publicado automaticamente em Releases.
+A cada envio para o GitHub, o GitHub Actions roda os testes no Windows e no Linux e gera o executável. O instalador é montado com o [Inno Setup 6](https://jrsoftware.org/isinfo.php) (`build/instalador.iss`) e testado: instala, anonimiza um arquivo de exemplo e desinstala. Ao criar uma tag `v*` (por exemplo `v1.0.0`), o .zip e o instalador são publicados automaticamente em Releases.
 
 ## Estrutura
 
