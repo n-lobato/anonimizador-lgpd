@@ -4,6 +4,8 @@ Programa para Windows que encontra e substitui dados pessoais em documentos: pet
 
 Você arrasta arquivos ou pastas para a janela, confere o que foi encontrado e o programa grava uma cópia anonimizada no mesmo formato do original.
 
+> **Qual programa usar?** Precisa do **próprio documento anonimizado**, em Word ou PDF com a mesma aparência do original (por exemplo, uma petição tarjada para enviar a alguém)? Use este, o Anonimizador LGPD. Precisa só do **texto** do documento para usar com IA, guardar ou pesquisar? Use o [Conversor Markdown](https://github.com/n-lobato/conversor-markdown), que converte para texto e também anonimiza. Os dois usam o mesmo motor de detecção de dados pessoais.
+
 ```
 MARIA APARECIDA DE SOUZA, brasileira, CPF 529.982.247-25, residente na SQS 308, Bloco C...
 ```
