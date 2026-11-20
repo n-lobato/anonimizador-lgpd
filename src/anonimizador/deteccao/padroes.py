@@ -23,6 +23,8 @@ NUM = r"(?:n\.?\s?[º°o]\.?|n[º°o]\.?|n\.|número|numero|nr\.?)"
 # Espaços opcionais ao redor da pontuação: o OCR às vezes lê "529.982 .247-25".
 CPF_FORMATADO = re.compile(r"(?<![\w.\-/])\d{3} ?\. ?\d{3} ?\. ?\d{3} ?[-–] ?\d{2}(?![\w])")
 CPF_SIMPLES = re.compile(r"(?<![\w.\-/])\d{11}(?![\w])")
+# "529 982 247 25": grupos só com espaços (às vezes vem assim do OCR). Só vale com dígito válido.
+CPF_ESPACOS = re.compile(r"(?<![\w.\-/])\d{3}[ \t]{1,2}\d{3}[ \t]{1,2}\d{3}[ \t]{1,2}\d{2}(?![\w])")
 CNPJ_FORMATADO = re.compile(
     r"(?<![\w.\-/])[0-9A-Z]{2} ?\. ?[0-9A-Z]{3} ?\. ?[0-9A-Z]{3} ?/ ?[0-9A-Z]{4} ?- ?\d{2}(?![\w])")
 CNPJ_SIMPLES = re.compile(r"(?<![\w.\-/])[0-9A-Z]{12}\d{2}(?![\w])")
@@ -234,6 +236,9 @@ def detectar_padroes(texto: str, tipos: set[str] | None = None) -> list[Achado]:
             if re.search(_OUTROS_DOCUMENTOS + r"[^\d\n]{0,20}$", antes):
                 continue  # 11 dígitos depois de "CNH", "título" etc. não é CPF
             if cpf_valido(m.group()) or re.search(r"cpf\W{0,15}$", antes):
+                r.append(_grupo(m, "CPF", 0.9))
+        for m in CPF_ESPACOS.finditer(texto):
+            if cpf_valido(m.group()):
                 r.append(_grupo(m, "CPF", 0.9))
     if quer("CNPJ"):
         for m in CNPJ_FORMATADO.finditer(texto):

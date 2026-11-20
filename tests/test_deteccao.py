@@ -97,3 +97,8 @@ def test_juntar_linhas_nao_estende_nome_ja_encontrado():
     nomes = [a.texto for a in Detector().detectar(texto, juntar_linhas=True) if a.tipo == "PESSOA"]
     assert "Patrícia Oliveira Duarte" in nomes and "GERALDO MONTEIRO" in nomes
     assert not any("Assunto" in n or "AVÓS" in n for n in nomes)
+
+
+def test_cpf_com_espacos_so_quando_o_digito_confere():
+    r = _por_tipo("CPF 529 982 247 25, telefone e outro número 123 456 789 00.")
+    assert r["CPF"] == ["529 982 247 25"]  # o segundo tem dígito inválido e fica de fora
