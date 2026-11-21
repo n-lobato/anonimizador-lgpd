@@ -152,6 +152,9 @@ jobs:
           else
             python -m pip install -r requirements-dev.txt
           fi
+          # O PySide6 6.12 para Mac foi compilado exigindo o macOS 26 (Tahoe), o que deixaria
+          # de fora muitos Macs. O 6.9.3 exige o macOS 12 (Monterey). Windows e Linux seguem no 6.12.
+          python -m pip install "PySide6==6.9.3"
           python build/baixar_tessdata.py
           echo "Processador: $(uname -m)"
           python -c "import pymupdf, PySide6; print('PyMuPDF', pymupdf.__version__, '| PySide6', PySide6.__version__)"

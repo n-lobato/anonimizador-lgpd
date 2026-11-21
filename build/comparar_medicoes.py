@@ -37,7 +37,8 @@ def main() -> int:
     pasta = Path(sys.argv[1])
     medicoes: dict[str, dict[str, dict]] = {}
     for arq in sorted(pasta.rglob("medicao-*.json")):
-        _, sistema, tipo = arq.stem.split("-", 2)
+        # medicao-<sistema>-<tipo>.json; o sistema pode ter hífen (ex.: mac-apple-silicon)
+        sistema, tipo = arq.stem.removeprefix("medicao-").rsplit("-", 1)
         medicoes.setdefault(sistema, {})[tipo] = json.loads(arq.read_text(encoding="utf-8"))
     if REFERENCIA not in medicoes:
         print("Medição do Windows não encontrada.")
