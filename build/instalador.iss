@@ -60,7 +60,7 @@ Name: "{autoprograms}\Anonimizador LGPD"; Filename: "{app}\AnonimizadorLGPD.exe"
 Name: "{autodesktop}\Anonimizador LGPD"; Filename: "{app}\AnonimizadorLGPD.exe"; Tasks: desktopicon
 
 [Run]
-Filename: "{app}\AnonimizadorLGPD.exe"; Description: "{cm:LaunchProgram,Anonimizador LGPD}"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\AnonimizadorLGPD.exe"; Description: "{cm:LaunchProgram,Anonimizador LGPD}"; Flags: nowait postinstall skipifsilent runasoriginaluser
 
 [UninstallDelete]
 ; configurações do programa, que incluem as listas de termos próprios ("sempre"/"nunca")

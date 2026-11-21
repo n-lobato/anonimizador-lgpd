@@ -44,6 +44,26 @@ def abrir_no_sistema(caminho: Path) -> None:
         pass
 
 
+def executando_elevado() -> bool:
+    """True se o programa roda como administrador no Windows.
+
+    Nesse caso o Windows bloqueia arrastar arquivos do Explorer (que roda sem
+    elevação) para a janela, e não há como o programa contornar isso.
+    """
+    if not sys.platform.startswith("win"):
+        return False
+    try:
+        import ctypes
+        return bool(ctypes.windll.shell32.IsUserAnAdmin())  # type: ignore[attr-defined]
+    except Exception:
+        return False
+
+
+AVISO_ELEVADO = ("O programa foi aberto como administrador. Nesse modo o Windows bloqueia "
+                 "arrastar arquivos do Explorer para a janela. Use os botões \"Adicionar\" "
+                 "ou feche o programa e abra de novo pelo menu Iniciar.")
+
+
 class ZonaSoltar(QFrame):
     def __init__(self, ao_clicar, parent=None):
         super().__init__(parent)
@@ -51,18 +71,23 @@ class ZonaSoltar(QFrame):
         self.setMinimumHeight(130)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         self._ao_clicar = ao_clicar
-        t = QLabel("Arraste aqui arquivos ou pastas")
+        t = self.titulo = QLabel("Arraste aqui arquivos ou pastas")
         t.setObjectName("zonaTitulo")
-        s = QLabel("Word (.docx), PDF (inclusive digitalizado), imagens, texto e Excel (.xlsx)\n"
-                   "ou clique para escolher arquivos")
+        s = self.sub = QLabel("Word (.docx), PDF (inclusive digitalizado), imagens, texto e Excel (.xlsx)\n"
+                              "ou clique para escolher arquivos")
         s.setObjectName("zonaSub")
         for w in (t, s):
             w.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        s.setWordWrap(True)
         lay = QVBoxLayout(self)
         lay.addStretch()
         lay.addWidget(t)
         lay.addWidget(s)
         lay.addStretch()
+
+    def modo_sem_arrastar(self) -> None:
+        self.titulo.setText("Clique aqui para escolher arquivos")
+        self.sub.setText(AVISO_ELEVADO)
 
     def destacar(self, ativa: bool) -> None:
         self.setProperty("ativa", "true" if ativa else "false")
@@ -89,6 +114,9 @@ class JanelaPrincipal(QMainWindow):
         self._montar_menu()
         self._montar_tela()
         self.setStyleSheet(ESTILO_ZONA)
+        if executando_elevado():
+            self.zona.modo_sem_arrastar()
+            self._escrever("Aviso: " + AVISO_ELEVADO)
         if entradas_iniciais:
             self.adicionar(entradas_iniciais)
 
