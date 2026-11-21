@@ -1,5 +1,7 @@
 # Anonimizador LGPD
 
+![Anonimizador LGPD](docs/social-preview.png)
+
 Programa para Windows que encontra e substitui dados pessoais em documentos: petições, decisões, certidões, atas, transcrições, contratos e similares. Tudo roda no seu computador. Nenhum arquivo é enviado para a internet.
 
 Você arrasta arquivos ou pastas para a janela, confere o que foi encontrado e o programa grava uma cópia anonimizada no mesmo formato do original.
@@ -28,6 +30,8 @@ Na página de [Releases](https://github.com/n-lobato/anonimizador-lgpd/releases/
 - **[Versão portátil (.zip)](https://github.com/n-lobato/anonimizador-lgpd/releases/latest/download/AnonimizadorLGPD-windows.zip).** Descompacte em qualquer pasta (ou pen drive) e execute `AnonimizadorLGPD.exe`. Não instala nada. Para remover, apague a pasta.
 
 O OCR em português já vem incluído nas duas. Funciona no Windows 10 e 11 (64 bits).
+
+> **Usa Mac ou Linux?** Por enquanto o Anonimizador LGPD é só para Windows. A anonimização também está disponível no [Conversor Markdown](https://github.com/n-lobato/conversor-markdown), que roda nos três sistemas, mas entrega o resultado em texto (Markdown), e não no formato original do documento.
 
 O Windows pode mostrar o aviso "O Windows protegeu o computador", porque o programa não tem assinatura digital paga. Clique em **Mais informações** e depois em **Executar assim mesmo**.
 
