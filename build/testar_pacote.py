@@ -7,8 +7,9 @@ Uso:
         Usa só a biblioteca padrão do Python, para rodar também numa máquina limpa.
 
 O que "conferir" verifica:
-1. A versão empacotada encontra o CPF e o nome no texto, no PDF com texto e no
-   PDF digitalizado (este último prova que o OCR está funcionando no pacote).
+1. A versão empacotada encontra o CPF e o nome em cada formato: texto, PDF com
+   texto, PDF digitalizado e imagem (estes dois provam que o OCR funciona no
+   pacote), Word e Excel.
 2. Depois de anonimizar, uma nova análise dos arquivos gerados não acha mais o
    CPF em nenhum deles, nem o nome no texto.
 3. Com --janela, a janela abre e continua aberta por alguns segundos.
@@ -27,7 +28,7 @@ from pathlib import Path
 NOME = "Pedro Henrique Alves"
 CPF = "529.982.247-25"
 FRASE = f"Requerente: {NOME}, brasileiro, inscrito no CPF sob o nº {CPF}, residente em Brasília."
-ARQUIVOS = ("teste.txt", "documento.pdf", "escaneado.pdf")
+ARQUIVOS = ("teste.txt", "documento.pdf", "escaneado.pdf", "documento.docx", "planilha.xlsx", "foto.png")
 
 
 def preparar(pasta: Path) -> None:
@@ -45,6 +46,16 @@ def preparar(pasta: Path) -> None:
     nova = escaneado.new_page(width=pg.rect.width, height=pg.rect.height)
     nova.insert_image(nova.rect, pixmap=pix)
     escaneado.save(pasta / "escaneado.pdf")
+    pix.save(pasta / "foto.png")
+    import docx
+    d = docx.Document()
+    d.add_paragraph(FRASE)
+    d.save(pasta / "documento.docx")
+    import openpyxl
+    wb = openpyxl.Workbook()
+    wb.active.append(["Nome", "CPF"])
+    wb.active.append([NOME, CPF])
+    wb.save(pasta / "planilha.xlsx")
     print("Amostras criadas em", pasta)
 
 
@@ -78,7 +89,7 @@ def conferir(cli: Path, pasta: Path, janela: Path | None) -> None:
         txt = rodar(cli, "--apenas-analisar", str(trabalho / nome))
         if achados(txt, "CPF") < 1:
             raise SystemExit(f"FALHOU: o CPF não foi encontrado em {nome}"
-                             + (" (o OCR do pacote não funcionou)" if nome == "escaneado.pdf" else ""))
+                             + (" (o OCR do pacote não funcionou)" if nome in ("escaneado.pdf", "foto.png") else ""))
         if achados(txt, "PESSOA") < 1:
             raise SystemExit(f"FALHOU: o nome não foi encontrado em {nome}")
 

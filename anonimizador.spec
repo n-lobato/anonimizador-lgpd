@@ -15,6 +15,15 @@ tess = raiz / "build" / "tessdata"
 if tess.is_dir():
     datas.append((str(tess), "tessdata"))
 
+excluir = ["tkinter", "spacy", "torch", "matplotlib", "numpy.distutils", "onnxruntime",
+           "pymupdf4llm", "pymupdf_layout", "pymupdf.layout", "networkx", "pytest",
+           "PySide6.QtWebEngineCore", "PySide6.QtWebEngineWidgets", "PySide6.Qt3DCore",
+           "PySide6.QtQuick", "PySide6.QtQml", "PySide6.QtMultimedia", "PySide6.QtCharts",
+           "PySide6.QtDataVisualization", "PySide6.QtPdf"]
+if sys.platform == "darwin":
+    # o programa não usa o numpy; no Mac com chip Apple a versão dele exige o macOS 14
+    excluir.append("numpy")
+
 a = Analysis(
     [str(raiz / "iniciar.py")],
     pathex=[str(raiz / "src")],
@@ -22,11 +31,7 @@ a = Analysis(
     hiddenimports=["anonimizador.formatos.docx", "anonimizador.formatos.pdf",
                    "anonimizador.formatos.imagem", "anonimizador.formatos.planilha",
                    "anonimizador.formatos.texto_simples", "anonimizador.gui.janela"],
-    excludes=["tkinter", "spacy", "torch", "matplotlib", "numpy.distutils", "onnxruntime",
-              "pymupdf4llm", "pymupdf_layout", "pymupdf.layout", "networkx", "pytest",
-              "PySide6.QtWebEngineCore", "PySide6.QtWebEngineWidgets", "PySide6.Qt3DCore",
-              "PySide6.QtQuick", "PySide6.QtQml", "PySide6.QtMultimedia", "PySide6.QtCharts",
-              "PySide6.QtDataVisualization", "PySide6.QtPdf"],
+    excludes=excluir,
     noarchive=False,
 )
 pyz = PYZ(a.pure)

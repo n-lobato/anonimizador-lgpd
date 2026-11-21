@@ -2,7 +2,7 @@
 
 ![Anonimizador LGPD](docs/social-preview.png)
 
-Programa para Windows que encontra e substitui dados pessoais em documentos: petições, decisões, certidões, atas, transcrições, contratos e similares. Tudo roda no seu computador. Nenhum arquivo é enviado para a internet.
+Programa para Windows, Mac e Linux que encontra e substitui dados pessoais em documentos: petições, decisões, certidões, atas, transcrições, contratos e similares. Tudo roda no seu computador. Nenhum arquivo é enviado para a internet.
 
 Você arrasta arquivos ou pastas para a janela, confere o que foi encontrado e o programa grava uma cópia anonimizada no mesmo formato do original.
 
@@ -24,23 +24,45 @@ A mesma pessoa recebe sempre o mesmo código, inclusive quando aparece de outra 
 
 ## Download e instalação
 
-Na página de [Releases](https://github.com/n-lobato/anonimizador-lgpd/releases/latest) há duas opções, com o mesmo programa:
+Todos os arquivos ficam na página de [Releases](https://github.com/n-lobato/anonimizador-lgpd/releases/latest). O OCR em português já vem incluído em todos.
+
+### Windows 10 e 11 (64 bits)
 
 - **[Instalador](https://github.com/n-lobato/anonimizador-lgpd/releases/latest/download/AnonimizadorLGPD-windows-instalador.exe) (recomendado).** Instala só para o seu usuário, sem pedir senha de administrador, cria o atalho no menu Iniciar (e, se quiser, na Área de Trabalho) e aparece em **Configurações > Aplicativos > Aplicativos instalados**, de onde se desinstala. Para atualizar, basta rodar o instalador da versão nova. Ao desinstalar, as configurações do programa também são apagadas, inclusive as listas de termos próprios.
 - **[Versão portátil (.zip)](https://github.com/n-lobato/anonimizador-lgpd/releases/latest/download/AnonimizadorLGPD-windows.zip).** Descompacte em qualquer pasta (ou pen drive) e execute `AnonimizadorLGPD.exe`. Não instala nada. Para remover, apague a pasta.
 
-O OCR em português já vem incluído nas duas. Funciona no Windows 10 e 11 (64 bits).
-
-> **Usa Mac ou Linux?** Por enquanto o Anonimizador LGPD é só para Windows. A anonimização também está disponível no [Conversor Markdown](https://github.com/n-lobato/conversor-markdown), que roda nos três sistemas, mas entrega o resultado em texto (Markdown), e não no formato original do documento.
-
 O Windows pode mostrar o aviso "O Windows protegeu o computador", porque o programa não tem assinatura digital paga. Clique em **Mais informações** e depois em **Executar assim mesmo**.
+
+Abra o programa pelo menu Iniciar ou pelo atalho, e não "como administrador". Aberto como administrador, o Windows bloqueia arrastar arquivos do Explorer para a janela (o programa avisa quando isso acontece).
+
+### Mac (macOS 12 Monterey ou mais novo)
+
+- **[Mac com chip Apple (M1, M2, M3, M4...)](https://github.com/n-lobato/anonimizador-lgpd/releases/latest/download/AnonimizadorLGPD-mac-apple-silicon.dmg)**
+- **[Mac com processador Intel](https://github.com/n-lobato/anonimizador-lgpd/releases/latest/download/AnonimizadorLGPD-mac-intel.dmg)**
+
+Para saber qual é o seu, abra o menu Apple > **Sobre Este Mac** e veja a linha "Chip" (Apple) ou "Processador" (Intel).
+
+Abra o .dmg e arraste **Anonimizador LGPD** para a pasta **Aplicativos**. Como o programa não tem certificado pago da Apple, o Mac bloqueia a primeira abertura. Para liberar, uma única vez:
+
+1. Tente abrir o programa e clique em **OK** (ou **Concluído**) no aviso.
+2. Abra **Ajustes do Sistema > Privacidade e Segurança**.
+3. Role até o fim e clique em **Abrir Mesmo Assim** ao lado de "Anonimizador LGPD". Confirme com a senha ou o Touch ID.
+
+Para desinstalar, arraste o programa da pasta Aplicativos para o Lixo.
+
+### Linux (64 bits)
+
+- **[Debian 12 ou mais novo, Ubuntu, Mint e derivados (.deb)](https://github.com/n-lobato/anonimizador-lgpd/releases/latest/download/AnonimizadorLGPD-linux-amd64.deb) (recomendado).** No terminal, na pasta do download: `sudo apt install ./AnonimizadorLGPD-linux-amd64.deb`. O programa aparece no menu de aplicativos. Para remover: `sudo apt remove anonimizador-lgpd`.
+- **[Outras distribuições (.tar.gz)](https://github.com/n-lobato/anonimizador-lgpd/releases/latest/download/AnonimizadorLGPD-linux-x64.tar.gz).** Extraia, entre na pasta e rode `./instalar.sh`. Instala só para o seu usuário, sem sudo. Para remover, rode `./desinstalar.sh`.
 
 ### Conferir se o arquivo é o original
 
-Os pacotes são gerados pelo GitHub Actions a partir do código deste repositório, e não no computador do autor. Cada arquivo vem acompanhado de um `.sha256` com a impressão digital (hash SHA-256) dele, que também aparece nas notas da versão. Para conferir, abra o PowerShell na pasta do download e rode (troque pelo nome do arquivo baixado):
+Os pacotes são gerados pelo GitHub Actions a partir do código deste repositório, e não no computador do autor. Cada arquivo vem acompanhado de um `.sha256` com a impressão digital (hash SHA-256) dele, que também aparece nas notas da versão. Para conferir, rode na pasta do download (troque pelo nome do arquivo baixado):
 
 ```
-Get-FileHash .\AnonimizadorLGPD-windows.zip -Algorithm SHA256
+Get-FileHash .\AnonimizadorLGPD-windows.zip -Algorithm SHA256        # Windows (PowerShell)
+shasum -a 256 AnonimizadorLGPD-mac-apple-silicon.dmg                 # Mac (Terminal)
+sha256sum AnonimizadorLGPD-linux-amd64.deb                           # Linux
 ```
 
 O código mostrado deve ser igual ao do arquivo `.sha256` e ao das notas da versão. Se for diferente, não use o arquivo.
@@ -50,8 +72,10 @@ O código mostrado deve ser igual ao do arquivo `.sha256` e ao das notas da vers
 Há três jeitos de colocar arquivos na fila:
 
 1. Arrastar arquivos ou pastas para a janela do programa.
-2. Arrastar arquivos sobre o ícone do `AnonimizadorLGPD.exe` (ou de um atalho dele).
-3. Clicar com o botão direito em arquivos ou pastas e usar **Enviar para > Anonimizador LGPD**. Para criar essa opção, use o menu **Ferramentas > Adicionar ao menu "Enviar para"**.
+2. Arrastar arquivos sobre o ícone do programa: no Windows, o `AnonimizadorLGPD.exe` ou um atalho dele; no Mac, o ícone no Dock; no Linux, o atalho, se o seu ambiente permitir.
+3. Só no Windows: clicar com o botão direito em arquivos ou pastas e usar **Enviar para > Anonimizador LGPD**. Para criar essa opção, use o menu **Ferramentas > Adicionar ao menu "Enviar para"**.
+
+Os botões **Adicionar arquivos** e **Adicionar pasta** funcionam em todos os casos.
 
 Depois clique em **Anonimizar**. Com a revisão ligada (recomendado), abre uma tela com tudo o que foi detectado:
 
@@ -147,7 +171,7 @@ Opcionalmente, o programa gera uma planilha `relatorio_anonimizacao_AAAAMMDD_HHM
 
 ## Linha de comando
 
-O pacote inclui `anonimizador-cli.exe`, útil para lotes grandes ou automação (sem revisão manual):
+O pacote inclui a linha de comando, útil para lotes grandes ou automação (sem revisão manual). No Windows é o `anonimizador-cli.exe`, na mesma pasta do programa; no Linux, o comando `anonimizador-cli`; no Mac, fica em `/Applications/Anonimizador LGPD.app/Contents/MacOS/anonimizador-cli`.
 
 ```
 anonimizador-cli.exe "C:\Processos\2026" -o "D:\Anonimizados"
@@ -158,7 +182,7 @@ anonimizador-cli.exe --help
 
 ## Configurações e lista de termos
 
-Ficam em `%APPDATA%\AnonimizadorLGPD` (`config.json` e `termos.json`). A lista de termos pode ser editada em **Ferramentas > Minha lista de termos**:
+Ficam em `config.json` e `termos.json`, na pasta `%APPDATA%\AnonimizadorLGPD` no Windows, `~/Library/Application Support/Anonimizador LGPD` no Mac e `~/.config/anonimizador-lgpd` no Linux. O menu **Ferramentas > Abrir pasta de configurações** abre a pasta certa. A lista de termos pode ser editada em **Ferramentas > Minha lista de termos**:
 
 - **Sempre anonimizar**: nomes ou expressões que devem ser substituídos sempre (com o tipo desejado).
 - **Nunca anonimizar**: expressões que não devem ser tocadas (nome do órgão, de uma lei, de um logradouro).
@@ -176,10 +200,19 @@ python iniciar.py                     # abre a janela
 python iniciar.py --cli arquivo.pdf   # linha de comando
 python -m pytest                      # testes
 python build/avaliar.py --detalhes    # mede os acertos no corpus de teste
-pyinstaller anonimizador.spec         # gera o executável em dist/
+pyinstaller anonimizador.spec         # gera o executável em dist/ (no Mac, o .app)
 ```
 
-A cada envio para o GitHub, o GitHub Actions roda os testes no Windows e no Linux e gera o executável. O instalador é montado com o [Inno Setup 6](https://jrsoftware.org/isinfo.php) (`build/instalador.iss`) e testado: instala, anonimiza um arquivo de exemplo e desinstala. Ao criar uma tag `v*` (por exemplo `v1.0.0`), o .zip e o instalador são publicados automaticamente em Releases.
+A cada envio para o GitHub, o GitHub Actions faz o seguinte nos três sistemas:
+
+- roda os testes e mede os acertos no corpus de teste (texto e PDF digitalizado);
+- gera os pacotes: no Windows, o .zip e o instalador ([Inno Setup 6](https://jrsoftware.org/isinfo.php), `build/instalador.iss`); no Mac, um .dmg para chip Apple e outro para Intel (`build/build_mac.sh`); no Linux, o .deb e o .tar.gz (`build/build_linux.sh`, gerados no Ubuntu 22.04 para rodar também em sistemas mais antigos);
+- testa cada pacote pronto com `build/testar_pacote.py`: anonimiza um texto, um PDF e um PDF digitalizado e abre a janela. O .deb também é instalado e testado num Debian 12 e num Debian 13 limpos;
+- compara a medição de acertos do Mac e do Linux com a do Windows (`build/comparar_medicoes.py`). Se algum sistema anonimizar pior, o build falha.
+
+Duas diferenças de versão entre os sistemas, por falta de pacote pronto das bibliotecas: no Mac, a interface usa o PySide6 6.9.3 (o 6.12 exige o macOS 26); no Mac Intel, o PyMuPDF é o 1.28.2 (o 2.1 não tem versão para Intel). A comparação de acertos acima vale justamente para garantir que isso não piora a anonimização.
+
+Para publicar uma versão, rode o workflow manualmente com a opção "Publicar" marcada (ou crie uma tag `v*`). Todos os pacotes vão juntos para Releases, com o SHA-256 de cada um.
 
 ## Estrutura
 
