@@ -23,8 +23,16 @@ rm -rf dist
 
 echo "2/5 Conferindo a versão mínima do macOS..."
 # a maior exigência entre as bibliotecas incluídas vale para o pacote inteiro
-MINIMO=$(find "$APP/Contents" -type f \( -name "*.dylib" -o -name "*.so" -o -perm -u+x \) -print0 \
-    | { xargs -0 -n 1 vtool -show-build 2>/dev/null || true; } | awk '/minos/{print $2}' | sort -V | tail -1)
+LISTA="$(mktemp)"
+find "$APP/Contents" -type f \( -name "*.dylib" -o -name "*.so" -o -perm -u+x \) -print0 |
+    while IFS= read -r -d '' f; do
+        v=$(vtool -show-build "$f" 2>/dev/null | awk '/minos/{print $2}' | sort -V | tail -1 || true)
+        [ -n "$v" ] && echo "$v ${f#"$APP/"}"
+    done | sort -V > "$LISTA" || true
+echo "    Arquivos que exigem o macOS mais novo:"
+tail -8 "$LISTA" | sed 's/^/      /'
+MINIMO=$(tail -1 "$LISTA" | cut -d' ' -f1)
+rm -f "$LISTA"
 MINIMO="${MINIMO:-11.0}"
 echo "    macOS mínimo: $MINIMO"
 plutil -replace LSMinimumSystemVersion -string "$MINIMO" "$APP/Contents/Info.plist"

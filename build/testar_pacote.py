@@ -16,6 +16,7 @@ O que "conferir" verifica:
 
 from __future__ import annotations
 
+import os
 import re
 import shutil
 import subprocess
@@ -48,8 +49,9 @@ def preparar(pasta: Path) -> None:
 
 
 def rodar(cli: Path, *args: str) -> str:
+    env = dict(os.environ, PYTHONIOENCODING="utf-8", PYTHONUTF8="1")
     r = subprocess.run([str(cli), *args], capture_output=True, text=True, encoding="utf-8",
-                       errors="replace", timeout=900)
+                       errors="replace", timeout=900, env=env)
     print(f"$ {cli.name} {' '.join(args)}  -> código {r.returncode}")
     print(r.stdout[-3000:])
     if r.stderr.strip():
@@ -115,6 +117,9 @@ def conferir(cli: Path, pasta: Path, janela: Path | None) -> None:
 
 
 def main(argv: list[str]) -> None:
+    for fluxo in (sys.stdout, sys.stderr):  # o console do Windows não usa UTF-8 por padrão
+        if hasattr(fluxo, "reconfigure"):
+            fluxo.reconfigure(encoding="utf-8", errors="replace")
     if len(argv) >= 2 and argv[0] == "preparar":
         preparar(Path(argv[1]))
     elif len(argv) >= 3 and argv[0] == "conferir":
