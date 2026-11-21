@@ -1,0 +1,31 @@
+ANONIMIZADOR LGPD PARA LINUX (64 bits)
+
+Encontra e substitui dados pessoais em documentos (Word, PDF, imagens, texto e
+Excel). Tudo roda no computador. Nenhum arquivo é enviado para a internet.
+O OCR (leitura de PDFs digitalizados e imagens) já vem incluído.
+
+INSTALAR NO DEBIAN, UBUNTU, MINT E DERIVADOS (recomendado)
+Use o arquivo AnonimizadorLGPD-linux-amd64.deb. No terminal, na pasta do
+download:
+    sudo apt install ./AnonimizadorLGPD-linux-amd64.deb
+O programa aparece no menu de aplicativos. Para remover:
+    sudo apt remove anonimizador-lgpd
+
+OUTRAS DISTRIBUIÇÕES (sem sudo)
+Use o arquivo AnonimizadorLGPD-linux-x64.tar.gz. Extraia, entre na pasta e rode:
+    ./instalar.sh
+Para remover, rode ./desinstalar.sh da mesma pasta.
+
+COMO USAR
+Arraste arquivos ou pastas para a janela, confira o que foi encontrado e clique
+em "Anonimizar". A cópia anonimizada fica na subpasta "anonimizados", ao lado
+do original. Também há a linha de comando: anonimizador-cli --help
+
+Nenhum programa encontra tudo. Leia o documento anonimizado inteiro antes de
+compartilhar.
+
+As opções e as listas de termos ficam em ~/.config/anonimizador-lgpd.
+
+LICENÇA E CÓDIGO-FONTE
+Software livre sob a GNU GPL v3. Código-fonte, instruções e novas versões:
+https://github.com/n-lobato/anonimizador-lgpd

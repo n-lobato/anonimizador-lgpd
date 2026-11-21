@@ -1,4 +1,4 @@
-name: Testes e executável Windows
+name: Testes e pacotes (Windows, Mac e Linux)
 
 on:
   push:
@@ -13,7 +13,7 @@ on:
         default: false
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   windows:
@@ -43,24 +43,21 @@ jobs:
           Write-Output "Código de saída do pytest: $LASTEXITCODE"
           exit $LASTEXITCODE
 
-      - name: Medição em PDF digitalizado (OCR)
+      - name: Medição de acertos (texto e PDF digitalizado)
         env:
           TESSDATA_PREFIX: ${{ github.workspace }}\build\tessdata
-        run: python build/avaliar_ocr.py --detalhes
+        run: |
+          New-Item -ItemType Directory -Force medicao | Out-Null
+          python build/avaliar.py --json medicao/medicao-windows-texto.json
+          python build/avaliar_ocr.py --detalhes --json medicao/medicao-windows-ocr.json
 
       - name: Gerar executável
         run: pyinstaller --noconfirm anonimizador.spec
 
-      - name: Testar o executável gerado
-        shell: pwsh
+      - name: Testar o executável gerado (texto, PDF, PDF digitalizado e janela)
         run: |
-          New-Item -ItemType Directory -Force amostra | Out-Null
-          "Requerente: Pedro Henrique Alves, CPF 529.982.247-25." | Out-File -Encoding utf8 amostra\teste.txt
-          .\dist\AnonimizadorLGPD\anonimizador-cli.exe amostra
-          if ($LASTEXITCODE -ne 0) { throw "CLI falhou" }
-          $saida = Get-Content amostra\anonimizados\teste_anonimizado.txt -Raw
-          Write-Output $saida
-          if ($saida -match "529.982") { throw "CPF não foi anonimizado" }
+          python build/testar_pacote.py preparar amostras
+          python build/testar_pacote.py conferir dist\AnonimizadorLGPD\anonimizador-cli.exe amostras --janela dist\AnonimizadorLGPD\AnonimizadorLGPD.exe
 
       - name: Compactar
         shell: pwsh
@@ -112,70 +109,267 @@ jobs:
           if (Test-Path "$env:APPDATA\AnonimizadorLGPD") { throw "Desinstalação deixou as configurações para trás" }
           Write-Output "Instalar e desinstalar: OK"
 
-      - name: Calcular SHA-256 dos pacotes
-        shell: pwsh
-        run: |
-          foreach ($f in 'AnonimizadorLGPD-windows.zip', 'AnonimizadorLGPD-windows-instalador.exe') {
-            $h = (Get-FileHash $f -Algorithm SHA256).Hash.ToLower()
-            "$h  $f" | Out-File -Encoding ascii -NoNewline "$f.sha256"
-            Write-Output "$f  $h"
-          }
-          $zip = (Get-FileHash AnonimizadorLGPD-windows.zip -Algorithm SHA256).Hash.ToLower()
-          $inst = (Get-FileHash AnonimizadorLGPD-windows-instalador.exe -Algorithm SHA256).Hash.ToLower()
-          "SHA256_ZIP=$zip" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
-          "SHA256_INST=$inst" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
-
-      - name: Medição de acertos no corpus
-        run: python build/avaliar.py
+      - uses: actions/upload-artifact@v7
+        with:
+          name: pacote-windows
+          path: |
+            AnonimizadorLGPD-windows.zip
+            AnonimizadorLGPD-windows-instalador.exe
 
       - uses: actions/upload-artifact@v7
         with:
-          name: AnonimizadorLGPD-windows
+          name: medicao-windows
+          path: medicao/*.json
+
+  mac:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15         # Apple Silicon (M1, M2, M3...)
+            arq: apple-silicon
+          - runner: macos-15-intel   # Intel
+            arq: intel
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Instalar dependências
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements-dev.txt
+          python build/baixar_tessdata.py
+          echo "Processador: $(uname -m)"
+
+      - name: Testes (inclui PDF, OCR e interface)
+        env:
+          QT_QPA_PLATFORM: offscreen
+          TESSDATA_PREFIX: ${{ github.workspace }}/build/tessdata
+        run: python -m pytest -v
+
+      - name: Medição de acertos (texto e PDF digitalizado)
+        env:
+          TESSDATA_PREFIX: ${{ github.workspace }}/build/tessdata
+        run: |
+          mkdir -p medicao
+          python build/avaliar.py --json medicao/medicao-mac-${{ matrix.arq }}-texto.json
+          python build/avaliar_ocr.py --detalhes --json medicao/medicao-mac-${{ matrix.arq }}-ocr.json
+
+      - name: Gerar o .dmg
+        run: bash build/build_mac.sh
+
+      - name: Testar o aplicativo gerado (texto, PDF, PDF digitalizado e janela)
+        run: |
+          APP="dist/Anonimizador LGPD.app/Contents/MacOS"
+          python build/testar_pacote.py preparar amostras
+          python build/testar_pacote.py conferir "$APP/anonimizador-cli" amostras --janela "$APP/AnonimizadorLGPD"
+
+      - name: Testar o .dmg (montar e conferir o aplicativo dentro dele)
+        run: |
+          DMG="AnonimizadorLGPD-mac-${{ matrix.arq }}.dmg"
+          hdiutil attach -nobrowse -readonly -mountpoint /tmp/dmg "$DMG"
+          ls -la /tmp/dmg
+          codesign --verify --deep --strict "/tmp/dmg/Anonimizador LGPD.app"
+          file "/tmp/dmg/Anonimizador LGPD.app/Contents/MacOS/AnonimizadorLGPD"
+          "/tmp/dmg/Anonimizador LGPD.app/Contents/MacOS/anonimizador-cli" --help | head -3
+          hdiutil detach /tmp/dmg
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: pacote-mac-${{ matrix.arq }}
           path: |
-            AnonimizadorLGPD-windows.zip
-            AnonimizadorLGPD-windows.zip.sha256
-            AnonimizadorLGPD-windows-instalador.exe
-            AnonimizadorLGPD-windows-instalador.exe.sha256
+            AnonimizadorLGPD-mac-${{ matrix.arq }}.dmg
+            dist/macos-minimo-${{ matrix.arq }}.txt
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: medicao-mac-${{ matrix.arq }}
+          path: medicao/*.json
+
+  linux:
+    # Ubuntu 22.04: o pacote gerado aqui roda também no Debian 12 e em sistemas mais antigos
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Bibliotecas do sistema para o Qt
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb libegl1 libgl1 libfontconfig1 libdbus-1-3 libxkbcommon0 \
+            libxkbcommon-x11-0 libxcb-cursor0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 \
+            libxcb-randr0 libxcb-render-util0 libxcb-shape0 libxcb-xfixes0 libxcb-xinerama0 libxcb-xkb1
+
+      - name: Instalar dependências
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+          python build/baixar_tessdata.py
+
+      - name: Testes (inclui PDF, OCR e interface)
+        env:
+          QT_QPA_PLATFORM: offscreen
+          TESSDATA_PREFIX: ${{ github.workspace }}/build/tessdata
+        run: python -m pytest -v
+
+      - name: Medição de acertos (texto e PDF digitalizado)
+        env:
+          TESSDATA_PREFIX: ${{ github.workspace }}/build/tessdata
+        run: |
+          mkdir -p medicao
+          python build/avaliar.py --json medicao/medicao-linux-texto.json
+          python build/avaliar_ocr.py --detalhes --json medicao/medicao-linux-ocr.json
+
+      - name: Gerar o .deb e o .tar.gz
+        run: bash build/build_linux.sh
+
+      - name: Testar o programa gerado (texto, PDF, PDF digitalizado e janela)
+        env:
+          QT_QPA_PLATFORM: xcb
+        run: |
+          python build/testar_pacote.py preparar amostras
+          xvfb-run -a python build/testar_pacote.py conferir dist/AnonimizadorLGPD/anonimizador-cli amostras --janela dist/AnonimizadorLGPD/AnonimizadorLGPD
+
+      - name: Testar o .tar.gz (instalar.sh e desinstalar.sh)
+        run: |
+          mkdir teste_tar && tar -xzf AnonimizadorLGPD-linux-x64.tar.gz -C teste_tar
+          cd teste_tar/AnonimizadorLGPD-linux-x64 && ./instalar.sh
+          test -f ~/.local/share/applications/anonimizador-lgpd.desktop
+          ~/.local/bin/anonimizador-cli --help | head -3
+          ./desinstalar.sh
+          if test -e ~/.local/bin/anonimizador-lgpd; then echo 'desinstalar.sh falhou'; exit 1; fi
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: pacote-linux
+          path: |
+            AnonimizadorLGPD-linux-amd64.deb
+            AnonimizadorLGPD-linux-x64.tar.gz
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: amostras
+          path: amostras
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: medicao-linux
+          path: medicao/*.json
+
+  debian:
+    # instala o .deb num Debian limpo, como um usuário faria, e usa o programa
+    needs: linux
+    strategy:
+      fail-fast: false
+      matrix:
+        imagem: ["debian:12", "debian:13"]
+    runs-on: ubuntu-latest
+    container: ${{ matrix.imagem }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/download-artifact@v7
+        with:
+          name: pacote-linux
+
+      - uses: actions/download-artifact@v7
+        with:
+          name: amostras
+          path: amostras
+
+      - name: Instalar o .deb (as dependências vêm do próprio Debian)
+        run: |
+          apt-get update
+          apt-get install -y ./AnonimizadorLGPD-linux-amd64.deb python3 xvfb xauth
+          test -f /usr/share/applications/anonimizador-lgpd.desktop
+          dpkg -s anonimizador-lgpd | sed -n '1,3p;/^Version/p'
+
+      - name: Usar o programa instalado (texto, PDF, PDF digitalizado e janela)
+        env:
+          QT_QPA_PLATFORM: xcb
+        run: xvfb-run -a python3 build/testar_pacote.py conferir /usr/bin/anonimizador-cli amostras --janela /usr/bin/anonimizador-lgpd
+
+      - name: Remover
+        run: |
+          apt-get remove -y anonimizador-lgpd
+          if test -e /opt/anonimizador-lgpd/AnonimizadorLGPD; then echo 'remoção falhou'; exit 1; fi
+
+  comparar:
+    # o mesmo corpus tem de dar o mesmo resultado em todos os sistemas
+    needs: [windows, mac, linux]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v7
+        with:
+          pattern: medicao-*
+          path: medicao
+          merge-multiple: true
+      - name: Comparar a medição de acertos entre Windows, Mac e Linux
+        run: python3 build/comparar_medicoes.py medicao
+
+  publicar:
+    needs: [windows, mac, linux, debian, comparar]
+    if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.publicar && github.ref == 'refs/heads/main')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/download-artifact@v7
+        with:
+          pattern: pacote-*
+          path: pacotes
+          merge-multiple: true
+
+      - name: Impressões digitais (SHA-256) e notas da versão
+        run: |
+          VERSAO=$(sed -n 's/^__version__ = "\(.*\)"/\1/p' src/anonimizador/__init__.py)
+          echo "VERSAO=$VERSAO" >> "$GITHUB_ENV"
+          MAC_ARM=$(cat pacotes/dist/macos-minimo-apple-silicon.txt 2>/dev/null || cat pacotes/macos-minimo-apple-silicon.txt)
+          MAC_INTEL=$(cat pacotes/dist/macos-minimo-intel.txt 2>/dev/null || cat pacotes/macos-minimo-intel.txt)
+          mkdir -p saida
+          find pacotes -type f \( -name '*.exe' -o -name '*.zip' -o -name '*.dmg' -o -name '*.deb' -o -name '*.tar.gz' \) -exec mv {} saida/ \;
+          cd saida
+          for f in *; do sha256sum "$f" | awk '{printf "%s  %s", $1, $2}' > "$f.sha256"; done
+          h() { cut -d' ' -f1 "$1.sha256"; }
+          cat > ../notas.md <<NOTAS
+          | Sistema | Arquivo | Para quê |
+          | --- | --- | --- |
+          | Windows 10 e 11 | \`AnonimizadorLGPD-windows-instalador.exe\` | Instalação normal (recomendado), sem administrador |
+          | Windows 10 e 11 | \`AnonimizadorLGPD-windows.zip\` | Versão portátil, sem instalar (pen drive) |
+          | Mac com chip Apple (M1, M2, M3...) | \`AnonimizadorLGPD-mac-apple-silicon.dmg\` | macOS $MAC_ARM ou mais novo |
+          | Mac com processador Intel | \`AnonimizadorLGPD-mac-intel.dmg\` | macOS $MAC_INTEL ou mais novo |
+          | Debian 12 ou mais novo, Ubuntu e derivados (64 bits) | \`AnonimizadorLGPD-linux-amd64.deb\` | \`sudo apt install ./AnonimizadorLGPD-linux-amd64.deb\` |
+          | Outras distribuições Linux (64 bits) | \`AnonimizadorLGPD-linux-x64.tar.gz\` | Extraia e rode \`./instalar.sh\` (sem sudo) |
+
+          No Mac, na primeira vez, libere o programa em Ajustes do Sistema > Privacidade e Segurança > "Abrir Mesmo Assim" (o programa não tem certificado pago da Apple). Detalhes no README.
+
+          **SHA-256**
+          $(for f in *; do case "$f" in *.sha256) ;; *) echo "- \`$f\`: \`$(h "$f")\`";; esac; done)
+
+          Para conferir: \`Get-FileHash .\\NOME_DO_ARQUIVO -Algorithm SHA256\` no Windows, \`shasum -a 256 NOME_DO_ARQUIVO\` no Mac ou \`sha256sum NOME_DO_ARQUIVO\` no Linux.
+          NOTAS
+          sed -i 's/^          //' ../notas.md
+          cat ../notas.md
+          ls -la
 
       - name: Publicar release
-        if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.publicar && github.ref == 'refs/heads/main')
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || format('v{0}', env.VERSAO) }}
           name: ${{ format('Anonimizador LGPD {0}', env.VERSAO) }}
           target_commitish: ${{ github.sha }}
-          files: |
-            AnonimizadorLGPD-windows-instalador.exe
-            AnonimizadorLGPD-windows-instalador.exe.sha256
-            AnonimizadorLGPD-windows.zip
-            AnonimizadorLGPD-windows.zip.sha256
-          body: |
-            | Arquivo | Para quê |
-            | --- | --- |
-            | `AnonimizadorLGPD-windows-instalador.exe` | Instalação normal (recomendado): menu Iniciar e Aplicativos instalados, sem administrador |
-            | `AnonimizadorLGPD-windows.zip` | Versão portátil, sem instalar (pen drive) |
-
-            **SHA-256**
-            - Instalador: `${{ env.SHA256_INST }}`
-            - Portátil: `${{ env.SHA256_ZIP }}`
-
-            Para conferir no Windows: `Get-FileHash .\NOME_DO_ARQUIVO -Algorithm SHA256`
+          body_path: notas.md
+          files: saida/*
           generate_release_notes: true
-
-  linux:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
-        with:
-          python-version: "3.12"
-          cache: pip
-      - name: Bibliotecas do sistema para o Qt
-        run: sudo apt-get update && sudo apt-get install -y libegl1 libxkbcommon0 libgl1 libfontconfig1 libdbus-1-3
-      - name: Testes
-        env:
-          QT_QPA_PLATFORM: offscreen
-        run: |
-          pip install -r requirements-dev.txt
-          python build/baixar_tessdata.py
-          TESSDATA_PREFIX=$PWD/build/tessdata python -m pytest -v

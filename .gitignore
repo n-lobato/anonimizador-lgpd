@@ -11,9 +11,25 @@ build/*
 !build/avaliar_ocr.py
 !build/.gitkeep
 !build/instalador.iss
+!build/build_mac.sh
+!build/build_linux.sh
+!build/linux/
+!build/testar_pacote.py
+!build/comparar_medicoes.py
+!build/LEIA-ME-mac.txt
+!build/LEIA-ME-linux.txt
 *.spec.bak
 anonimizados/
 relatorio_anonimizacao_*.xlsx
 .DS_Store
 Thumbs.db
 exemplos/
+# pacotes e testes gerados pelo build
+AnonimizadorLGPD-*.zip
+AnonimizadorLGPD-*.exe
+AnonimizadorLGPD-*.dmg
+AnonimizadorLGPD-*.deb
+AnonimizadorLGPD-*.tar.gz
+amostras/
+amostras_teste/
+medicao/

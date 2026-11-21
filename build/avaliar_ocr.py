@@ -142,11 +142,13 @@ def main(argv=None) -> int:
     ap.add_argument("--grupo", choices=["desenvolvimento", "validacao"])
     ap.add_argument("--detalhes", action="store_true")
     ap.add_argument("--dpi", type=int, default=200, help="resolução da digitalização simulada (padrão 200)")
+    ap.add_argument("--json", type=Path, help="grava as contagens num arquivo (para comparar sistemas)")
     args = ap.parse_args(argv)
     if not localizar_tessdata("por"):
         print("Dados do OCR em português não encontrados (rode build/baixar_tessdata.py).")
         return 1
     grupos = [args.grupo] if args.grupo else ["desenvolvimento", "validacao"]
+    resumo: dict = {}
     for grupo in grupos:
         resultados = []
         for f in sorted((avaliar.CORPUS / grupo).glob("*.txt")):
@@ -166,10 +168,17 @@ def main(argv=None) -> int:
         n = tot["coberto"] + tot["parcial"] + tot["vazou"]
         print(f"{'TOTAL':<16}{n:>6}{tot['coberto']:>9}{tot['parcial']:>9}{tot['vazou']:>7}"
               f"{tot['ilegível no original']:>10}{avaliar.pct(tot['coberto'], n):>8}")
+        resumo[grupo] = {"tipos": {t: {"total": c["coberto"] + c["parcial"] + c["vazou"],
+                                       "coberto": c["coberto"], "parcial": c["parcial"],
+                                       "vazou": c["vazou"], "ilegivel": c["ilegível no original"]}
+                                   for t, c in por_tipo.items()}}
         if args.detalhes:
             for arq, m, status, sobrou in resultados:
                 if status != "coberto":
                     print(f"  [{status}] {arq}: {m.tipo} '{m.texto}'" + (f" -> legível: {sobrou}" if sobrou else ""))
+    if args.json:
+        import json
+        args.json.write_text(json.dumps(resumo, ensure_ascii=False, indent=1), encoding="utf-8")
     return 0
 
 

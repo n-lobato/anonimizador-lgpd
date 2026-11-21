@@ -1,0 +1,40 @@
+ANONIMIZADOR LGPD PARA MAC
+
+Encontra e substitui dados pessoais em documentos (Word, PDF, imagens, texto e
+Excel). Tudo roda no computador. Nenhum arquivo é enviado para a internet.
+O OCR (leitura de PDFs digitalizados e imagens) já vem incluído.
+Precisa do macOS {MINIMO} ou mais novo. Para ver a sua versão: menu Apple >
+Sobre Este Mac. Há um pacote para Macs com chip Apple (M1, M2, M3, M4...) e
+outro para Macs com processador Intel; use o que corresponde ao seu.
+
+INSTALAR
+1. Arraste "Anonimizador LGPD" para a pasta "Aplicativos", nesta mesma janela.
+2. Abra o programa pela pasta Aplicativos ou pelo Launchpad.
+
+NA PRIMEIRA VEZ
+O programa não tem certificado pago da Apple, então o Mac bloqueia a primeira
+abertura com o aviso de que não foi possível verificar o aplicativo.
+
+1. Tente abrir uma vez e clique em "OK" ou "Concluído" no aviso.
+2. Abra Ajustes do Sistema > Privacidade e Segurança.
+3. Role até o fim e clique em "Abrir Mesmo Assim" ao lado de
+   "Anonimizador LGPD". Confirme com sua senha ou Touch ID.
+
+Depois disso o Mac não pergunta mais.
+
+COMO USAR
+Arraste arquivos ou pastas para a janela ou para o ícone do programa no Dock,
+confira o que foi encontrado e clique em "Anonimizar". A cópia anonimizada fica
+na subpasta "anonimizados", ao lado do original.
+
+Nenhum programa encontra tudo. Leia o documento anonimizado inteiro antes de
+compartilhar.
+
+DESINSTALAR
+Arraste "Anonimizador LGPD" da pasta Aplicativos para o Lixo. Para apagar também
+as opções e as listas de termos, no Finder use Ir > Ir para a Pasta, cole
+~/Library/Application Support/Anonimizador LGPD e apague essa pasta.
+
+LICENÇA E CÓDIGO-FONTE
+Software livre sob a GNU GPL v3. Código-fonte, instruções e novas versões:
+https://github.com/n-lobato/anonimizador-lgpd

@@ -163,10 +163,18 @@ def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--grupo", choices=["desenvolvimento", "validacao"])
     ap.add_argument("--detalhes", action="store_true")
+    ap.add_argument("--json", type=Path, help="grava as contagens num arquivo (para comparar sistemas)")
     args = ap.parse_args(argv)
+    resumo: dict = {}
     for grupo in [args.grupo] if args.grupo else ["desenvolvimento", "validacao"]:
         r, f = avaliar_grupo(grupo)
         imprimir(grupo, r, f, args.detalhes)
+        resumo[grupo] = {"tipos": {t: {"total": n, "coberto": c, "parcial": p, "vazou": v}
+                                   for t, n, c, p, v in tabela(r)},
+                         "falsos_positivos": len(f)}
+    if args.json:
+        import json
+        args.json.write_text(json.dumps(resumo, ensure_ascii=False, indent=1), encoding="utf-8")
     return 0
 
 

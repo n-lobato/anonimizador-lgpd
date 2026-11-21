@@ -43,6 +43,8 @@ def pasta_config() -> Path:
     if sys.platform.startswith("win"):
         base = Path(os.environ.get("APPDATA", Path.home() / "AppData" / "Roaming"))
         pasta = base / "AnonimizadorLGPD"
+    elif sys.platform == "darwin":
+        pasta = Path.home() / "Library" / "Application Support" / "Anonimizador LGPD"
     else:
         pasta = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / "anonimizador-lgpd"
     pasta.mkdir(parents=True, exist_ok=True)

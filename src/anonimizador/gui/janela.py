@@ -7,7 +7,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QEvent, QObject, Qt
 from PySide6.QtGui import QAction, QIcon
 from PySide6.QtWidgets import (QAbstractItemView, QApplication, QButtonGroup, QCheckBox, QDialog,
                                QFileDialog, QFrame, QGroupBox, QHBoxLayout, QLabel, QLineEdit,
@@ -132,18 +132,26 @@ class JanelaPrincipal(QMainWindow):
                 continue
             a = QAction(rotulo, self)
             a.triggered.connect(acao)
+            if rotulo == "Sair":
+                a.setMenuRole(QAction.MenuRole.QuitRole)  # no Mac vai para o menu do aplicativo
+                a.setShortcut("Ctrl+Q")
             arq.addAction(a)
         fer = m.addMenu("&Ferramentas")
-        for rotulo, acao in [("Minha lista de termos...", self._editar_termos),
-                             ("Tipos de dados a procurar...", self._editar_tipos),
-                             ("Adicionar ao menu \"Enviar para\" do Windows", self._enviar_para),
-                             ("Verificar OCR", self._verificar_ocr),
-                             ("Abrir pasta de configurações", lambda: abrir_no_sistema(pasta_config()))]:
+        itens = [("Minha lista de termos...", self._editar_termos),
+                 ("Tipos de dados a procurar...", self._editar_tipos),
+                 ("Adicionar ao menu \"Enviar para\" do Windows", self._enviar_para),
+                 ("Verificar OCR", self._verificar_ocr),
+                 ("Abrir pasta de configurações", lambda: abrir_no_sistema(pasta_config()))]
+        if not sys.platform.startswith("win"):
+            itens = [i for i in itens if "Enviar para" not in i[0]]
+        for rotulo, acao in itens:
             a = QAction(rotulo, self)
+            a.setMenuRole(QAction.MenuRole.NoRole)
             a.triggered.connect(acao)
             fer.addAction(a)
         aj = m.addMenu("Aj&uda")
         a = QAction("Sobre", self)
+        a.setMenuRole(QAction.MenuRole.AboutRole)
         a.triggered.connect(self._sobre)
         aj.addAction(a)
 
@@ -440,10 +448,39 @@ class JanelaPrincipal(QMainWindow):
         ev.accept()
 
 
+class _ReceberArquivos(QObject):
+    """No Mac, arquivos soltos sobre o ícone do Dock (ou abertos com "Abrir com")
+    chegam como evento FileOpen, e não como argumentos da linha de comando."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.janela: JanelaPrincipal | None = None
+        self.pendentes: list[str] = []
+
+    def eventFilter(self, obj, ev):
+        if ev.type() == QEvent.Type.FileOpen:
+            caminho = ev.file()
+            if caminho:
+                if self.janela is not None:
+                    self.janela.adicionar([caminho])
+                    self.janela.raise_()
+                    self.janela.activateWindow()
+                else:
+                    self.pendentes.append(caminho)
+            return True
+        return False
+
+
 def executar(argv: list[str]) -> int:
     app = QApplication.instance() or QApplication(sys.argv[:1])
     app.setApplicationName(NOME_APP)
     app.setStyle("Fusion")
+    receptor = _ReceberArquivos(app)
+    app.installEventFilter(receptor)
+    # argumentos que o macOS acrescenta ao abrir o app (ex.: -psn_0_12345) começam com "-"
     janela = JanelaPrincipal([a for a in argv if not a.startswith("-")])
+    receptor.janela = janela
+    if receptor.pendentes:
+        janela.adicionar(receptor.pendentes)
     janela.show()
     return app.exec()
