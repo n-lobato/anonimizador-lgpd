@@ -122,14 +122,12 @@ jobs:
           path: medicao/*.json
 
   mac:
+    # só Macs com chip Apple (M1, M2, M3...): o PyMuPDF 2.1 não tem versão para Mac Intel
     strategy:
-      fail-fast: false
       matrix:
         include:
-          - runner: macos-15         # Apple Silicon (M1, M2, M3...)
+          - runner: macos-15
             arq: apple-silicon
-          - runner: macos-15-intel   # Intel
-            arq: intel
     runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v7
@@ -142,16 +140,7 @@ jobs:
       - name: Instalar dependências
         run: |
           python -m pip install --upgrade pip
-          if [ "${{ matrix.arq }}" = "intel" ]; then
-            # o PyMuPDF 2.1 não tem versão pronta para Mac Intel; usa a mais nova que tenha.
-            # A medição de acertos comparada com o Windows (job "comparar") barra o build
-            # se essa versão anonimizar pior.
-            sed '/^PyMuPDF==/d' requirements.txt > req-mac-intel.txt
-            grep -v '^-r' requirements-dev.txt >> req-mac-intel.txt
-            python -m pip install -r req-mac-intel.txt "PyMuPDF<=2.1" --only-binary=PyMuPDF
-          else
-            python -m pip install -r requirements-dev.txt
-          fi
+          python -m pip install -r requirements-dev.txt
           # O PySide6 6.12 para Mac foi compilado exigindo o macOS 26 (Tahoe), o que deixaria
           # de fora muitos Macs. O 6.9.3 exige o macOS 12 (Monterey). Windows e Linux seguem no 6.12.
           python -m pip install "PySide6==6.9.3"
@@ -350,7 +339,6 @@ jobs:
           VERSAO=$(sed -n 's/^__version__ = "\(.*\)"/\1/p' src/anonimizador/__init__.py)
           echo "VERSAO=$VERSAO" >> "$GITHUB_ENV"
           MAC_ARM=$(cat pacotes/dist/macos-minimo-apple-silicon.txt 2>/dev/null || cat pacotes/macos-minimo-apple-silicon.txt)
-          MAC_INTEL=$(cat pacotes/dist/macos-minimo-intel.txt 2>/dev/null || cat pacotes/macos-minimo-intel.txt)
           mkdir -p saida
           find pacotes -type f \( -name '*.exe' -o -name '*.zip' -o -name '*.dmg' -o -name '*.deb' -o -name '*.tar.gz' \) -exec mv {} saida/ \;
           cd saida
@@ -362,7 +350,6 @@ jobs:
           | Windows 10 e 11 | \`AnonimizadorLGPD-windows-instalador.exe\` | Instalação normal (recomendado), sem administrador |
           | Windows 10 e 11 | \`AnonimizadorLGPD-windows.zip\` | Versão portátil, sem instalar (pen drive) |
           | Mac com chip Apple (M1, M2, M3...) | \`AnonimizadorLGPD-mac-apple-silicon.dmg\` | macOS $MAC_ARM ou mais novo |
-          | Mac com processador Intel | \`AnonimizadorLGPD-mac-intel.dmg\` | macOS $MAC_INTEL ou mais novo |
           | Debian 12 ou mais novo, Ubuntu e derivados (64 bits) | \`AnonimizadorLGPD-linux-amd64.deb\` | \`sudo apt install ./AnonimizadorLGPD-linux-amd64.deb\` |
           | Outras distribuições Linux (64 bits) | \`AnonimizadorLGPD-linux-x64.tar.gz\` | Extraia e rode \`./instalar.sh\` (sem sudo) |
 

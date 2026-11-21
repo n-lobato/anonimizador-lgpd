@@ -3,9 +3,9 @@ ANONIMIZADOR LGPD PARA MAC
 Encontra e substitui dados pessoais em documentos (Word, PDF, imagens, texto e
 Excel). Tudo roda no computador. Nenhum arquivo é enviado para a internet.
 O OCR (leitura de PDFs digitalizados e imagens) já vem incluído.
-Precisa do macOS {MINIMO} ou mais novo. Para ver a sua versão: menu Apple >
-Sobre Este Mac. Há um pacote para Macs com chip Apple (M1, M2, M3, M4...) e
-outro para Macs com processador Intel; use o que corresponde ao seu.
+Feito para Macs com chip Apple (M1, M2, M3, M4 ou mais novos), com macOS
+{MINIMO} ou mais novo. Não funciona em Macs com processador Intel. Para ver o
+chip e a versão: menu Apple > Sobre Este Mac.
 
 INSTALAR
 1. Arraste "Anonimizador LGPD" para a pasta "Aplicativos", nesta mesma janela.

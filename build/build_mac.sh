@@ -4,14 +4,15 @@
 # Uso (na raiz do projeto, com as dependências instaladas):
 #   python build/baixar_tessdata.py
 #   bash build/build_mac.sh
-# O processador da máquina decide o pacote: Apple Silicon (arm64) ou Intel (x86_64).
+# Só para Macs com chip Apple (arm64): o PyMuPDF 2.1 não tem versão para Mac Intel.
 set -euo pipefail
 
 RAIZ="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$RAIZ"
 PY="${PYTHON:-python}"
 VERSAO="$(sed -n 's/^__version__ = "\(.*\)"/\1/p' src/anonimizador/__init__.py)"
-[ "$(uname -m)" = "arm64" ] && ARQ="apple-silicon" || ARQ="intel"
+[ "$(uname -m)" = "arm64" ] || { echo "ERRO: gere o pacote num Mac com chip Apple (arm64)"; exit 1; }
+ARQ="apple-silicon"
 APP="dist/Anonimizador LGPD.app"
 
 echo "1/5 Gerando o aplicativo (versão $VERSAO, $ARQ)..."

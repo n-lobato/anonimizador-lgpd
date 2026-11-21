@@ -35,12 +35,11 @@ O Windows pode mostrar o aviso "O Windows protegeu o computador", porque o progr
 
 Abra o programa pelo menu Iniciar ou pelo atalho, e não "como administrador". Aberto como administrador, o Windows bloqueia arrastar arquivos do Explorer para a janela (o programa avisa quando isso acontece).
 
-### Mac (macOS 12 Monterey ou mais novo)
+### Mac com chip Apple (M1, M2, M3, M4...), macOS 12 Monterey ou mais novo
 
-- **[Mac com chip Apple (M1, M2, M3, M4...)](https://github.com/n-lobato/anonimizador-lgpd/releases/latest/download/AnonimizadorLGPD-mac-apple-silicon.dmg)**
-- **[Mac com processador Intel](https://github.com/n-lobato/anonimizador-lgpd/releases/latest/download/AnonimizadorLGPD-mac-intel.dmg)**
+- **[Anonimizador LGPD para Mac (.dmg)](https://github.com/n-lobato/anonimizador-lgpd/releases/latest/download/AnonimizadorLGPD-mac-apple-silicon.dmg)**
 
-Para saber qual é o seu, abra o menu Apple > **Sobre Este Mac** e veja a linha "Chip" (Apple) ou "Processador" (Intel).
+Não há versão para Macs com processador Intel. Para saber qual é o seu, abra o menu Apple > **Sobre Este Mac**: se aparecer a linha "Chip" com Apple M1, M2 etc., este pacote serve; se aparecer "Processador" com Intel, não serve.
 
 Abra o .dmg e arraste **Anonimizador LGPD** para a pasta **Aplicativos**. Como o programa não tem certificado pago da Apple, o Mac bloqueia a primeira abertura. Para liberar, uma única vez:
 
@@ -206,11 +205,11 @@ pyinstaller anonimizador.spec         # gera o executável em dist/ (no Mac, o .
 A cada envio para o GitHub, o GitHub Actions faz o seguinte nos três sistemas:
 
 - roda os testes e mede os acertos no corpus de teste (texto e PDF digitalizado);
-- gera os pacotes: no Windows, o .zip e o instalador ([Inno Setup 6](https://jrsoftware.org/isinfo.php), `build/instalador.iss`); no Mac, um .dmg para chip Apple e outro para Intel (`build/build_mac.sh`); no Linux, o .deb e o .tar.gz (`build/build_linux.sh`, gerados no Ubuntu 22.04 para rodar também em sistemas mais antigos);
+- gera os pacotes: no Windows, o .zip e o instalador ([Inno Setup 6](https://jrsoftware.org/isinfo.php), `build/instalador.iss`); no Mac, o .dmg para chip Apple (`build/build_mac.sh`); no Linux, o .deb e o .tar.gz (`build/build_linux.sh`, gerados no Ubuntu 22.04 para rodar também em sistemas mais antigos);
 - testa cada pacote pronto com `build/testar_pacote.py`: anonimiza um texto, um PDF e um PDF digitalizado e abre a janela. O .deb também é instalado e testado num Debian 12 e num Debian 13 limpos;
 - compara a medição de acertos do Mac e do Linux com a do Windows (`build/comparar_medicoes.py`). Se algum sistema anonimizar pior, o build falha.
 
-Duas diferenças de versão entre os sistemas, por falta de pacote pronto das bibliotecas: no Mac, a interface usa o PySide6 6.9.3 (o 6.12 exige o macOS 26); no Mac Intel, o PyMuPDF é o 1.28.2 (o 2.1 não tem versão para Intel). A comparação de acertos acima vale justamente para garantir que isso não piora a anonimização.
+Uma diferença de versão entre os sistemas: no Mac, a interface usa o PySide6 6.9.3, porque o 6.12 exige o macOS 26. Não há versão para Mac Intel porque o PyMuPDF 2.1, usado na leitura e na tarja dos PDFs, não tem pacote para esse processador.
 
 Para publicar uma versão, rode o workflow manualmente com a opção "Publicar" marcada (ou crie uma tag `v*`). Todos os pacotes vão juntos para Releases, com o SHA-256 de cada um.
 
