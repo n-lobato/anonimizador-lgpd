@@ -112,3 +112,14 @@ def test_campos_da_identidade_militar():
         "DATA NASCIMENTO\n01/02/1970\nFUSEX\n123456789 01", juntar_linhas=True)}
     assert ("DATA_NASCIMENTO", "01/02/1970") in achados
     assert ("MATRICULA", "123456789 01") in achados
+
+
+def test_doc_origem_da_identidade_e_rotulos_nao_sao_nomes():
+    d = Detector(set(TIPOS))
+    texto = ("NACIONALIDADE NATURALIDADE\nBRASILEIRA BELEM / PA\nDOC ORIGEM\n"
+             "Reg Cas nº 0012345, CART 7º OF, Manaus-AM, Lv\nB-00011, Fl 111, Exp 01 JUN 19.")
+    achados = [(a.tipo, a.texto) for a in d.detectar(texto, juntar_linhas=True)]
+    assert not any(t == "PESSOA" for t, _ in achados)  # rótulos do documento não são nomes
+    assert any(t == "MATRICULA" and v.startswith("0012345") and v.endswith("Fl 111") for t, v in achados)
+    # referência a folhas dos autos não é registro civil
+    assert not d.detectar("Conforme fls. 242 dos autos, o registro de nascimento foi juntado.")

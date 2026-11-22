@@ -64,6 +64,11 @@ MATRICULA = [
         r"de\s+registro|militar|escolar))?\s*[:\-–]?\s*(?:sob\s+o\s+)?(?:" + NUM + r"\s*)?[:\-–]?\s*"
         r"(?P<v>\d[\d.\-/]{2,15}\d(?:[ \t]\d[\d.\-/]{0,15})*)(?!\d)", I),
     re.compile(r"(?<!\w)SIAPE\s*[:\-–]?\s*(?:" + NUM + r"\s*)?(?P<v>\d{5,8})(?!\d)", I),
+    # registro civil citado em documentos de identidade ("DOC ORIGEM: Reg Cas nº 123, CART 7º OF,
+    # Cidade-UF, Lv B-12, Fl 34"): número do registro até a folha, que localizam o assento
+    re.compile(r"(?<!\w)reg(?:istro)?\.?\s*(?:de\s+)?(?:cas(?:amento)?|nasc(?:imento)?)\.?\s*(?:" + NUM +
+               r"\s*)?(?P<v>\d[\d.\-/]{2,15}\d(?:[^\n]{0,60}?(?:\n[^\n]{0,60}?)?\bfl(?:s|ha)?\.?\s*\d{1,4})?)",
+               I),
     # documentos militares; o FUSEX (fundo de saúde do Exército) aparece na identidade militar
     re.compile(r"(?<!\w)(?:prec[- ]?cp|idt\.?\s*mil(?:itar)?|fusex)\s*[:\-–]?\s*(?:" + NUM +
                r"\s*)?(?P<v>\d[\d.\-]{4,15}\d(?:[ \t]\d{1,4})?)(?!\d)", I),

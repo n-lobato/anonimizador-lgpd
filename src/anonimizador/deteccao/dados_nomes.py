@@ -162,6 +162,8 @@ eleitoral turma turmas camara camaras secao secoes gabinete desembargador desemb
 ministro ministra relator relatora revisor promotor promotora escrivao escriva oficial
 oficiala cartorio registro registros tabeliao tabeliona tabelionato notas imoveis pessoas
 naturais juridicas cnpj cpf rg cep oab inss sus ctps cnh pis
+nacionalidade naturalidade identidade carteira documento doc origem validade valida expedicao
+expedida emissor titular nascimento sexo fusex prec polegar dependente dependentes
 janeiro fevereiro abril maio junho julho agosto setembro outubro novembro dezembro
 segunda terca quarta quinta sexta sabado domingo feira
 rua avenida av travessa alameda rodovia estrada praca largo beco bairro centro cidade
