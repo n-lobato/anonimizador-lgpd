@@ -1,3 +1,4 @@
+from anonimizador.config import TIPOS
 from anonimizador.deteccao.detector import Detector
 from anonimizador.deteccao.nomes import detectar_nomes
 from anonimizador.texto import Localizador, normalizar
@@ -102,3 +103,12 @@ def test_juntar_linhas_nao_estende_nome_ja_encontrado():
 def test_cpf_com_espacos_so_quando_o_digito_confere():
     r = _por_tipo("CPF 529 982 247 25, telefone e outro número 123 456 789 00.")
     assert r["CPF"] == ["529 982 247 25"]  # o segundo tem dígito inválido e fica de fora
+
+
+def test_campos_da_identidade_militar():
+    """Rótulos como saem da identidade militar lida pelo OCR: sem "de" e com o valor na linha de baixo."""
+    d = Detector(set(TIPOS))
+    achados = {(a.tipo, a.texto) for a in d.detectar(
+        "DATA NASCIMENTO\n01/02/1970\nFUSEX\n123456789 01", juntar_linhas=True)}
+    assert ("DATA_NASCIMENTO", "01/02/1970") in achados
+    assert ("MATRICULA", "123456789 01") in achados

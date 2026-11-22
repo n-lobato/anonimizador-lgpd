@@ -64,8 +64,9 @@ MATRICULA = [
         r"de\s+registro|militar|escolar))?\s*[:\-–]?\s*(?:sob\s+o\s+)?(?:" + NUM + r"\s*)?[:\-–]?\s*"
         r"(?P<v>\d[\d.\-/]{2,15}\d(?:[ \t]\d[\d.\-/]{0,15})*)(?!\d)", I),
     re.compile(r"(?<!\w)SIAPE\s*[:\-–]?\s*(?:" + NUM + r"\s*)?(?P<v>\d{5,8})(?!\d)", I),
-    re.compile(r"(?<!\w)(?:prec[- ]?cp|idt\.?\s*mil(?:itar)?)\s*[:\-–]?\s*(?:" + NUM +
-               r"\s*)?(?P<v>\d[\d.\-]{4,15}\d)(?!\d)", I),
+    # documentos militares; o FUSEX (fundo de saúde do Exército) aparece na identidade militar
+    re.compile(r"(?<!\w)(?:prec[- ]?cp|idt\.?\s*mil(?:itar)?|fusex)\s*[:\-–]?\s*(?:" + NUM +
+               r"\s*)?(?P<v>\d[\d.\-]{4,15}\d(?:[ \t]\d{1,4})?)(?!\d)", I),
 ]
 PROCESSO = re.compile(
     r"(?<![\d.\-])\d{7} ?-? ?\d{2} ?\.? ?\d{4} ?\.? ?\d ?\.? ?\d{2} ?\.? ?\d{4}(?![\d])")
@@ -94,7 +95,7 @@ CEP = [
     re.compile(r"(?<!\w)CEP\s*[:\-–]?\s*(?:" + NUM + r"\s*)?(?P<v>\d{8})(?!\d)", I),
 ]
 DATA_NASC = re.compile(
-    r"(?:nascid[oa]s?\s+(?:em|aos|no\s+dia|a)|nasceu\s+(?:em|no\s+dia)|data\s+de\s+nascimento|"
+    r"(?:nascid[oa]s?\s+(?:em|aos|no\s+dia|a)|nasceu\s+(?:em|no\s+dia)|data\s+(?:de\s+)?nascimento|"
     r"(?<![\w ])nascimento\s*:|"
     r"dt\.?\s*nasc\.?|nasc\.)"
     r"\s*[:\-–?]?\s*(?:\n[^\n:]{0,30}:\s*)?(?:(?:no\s+)?dia\s+)?(?:em\s+)?"
