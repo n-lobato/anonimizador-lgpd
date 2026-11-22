@@ -106,6 +106,15 @@ DATA_NASC = re.compile(
     r"dt\.?\s*nasc\.?|nasc\.)"
     r"\s*[:\-–?]?\s*(?:\n[^\n:]{0,30}:\s*)?(?:(?:no\s+)?dia\s+)?(?:em\s+)?"
     r"(?P<v>\d{1,2}[/.\-]\d{1,2}[/.\-]\d{2,4}|\d{1,2}º?\s+de\s+[a-zç]+\s+de\s+\d{4})", I)
+# Cidade de nascimento, só com o rótulo: "natural de Belém/PA", "NATURALIDADE: BELEM / PA"
+# (na identidade, o rótulo pode vir na linha de cima e a nacionalidade antes da cidade).
+_PALAVRA_CIDADE = r"[A-ZÀ-Ý][A-Za-zÀ-ÿ'’\-]+"
+_CIDADE = _PALAVRA_CIDADE + r"(?:[ \t]+(?:(?:d[eao]s?|e)[ \t]+)?" + _PALAVRA_CIDADE + r"){0,4}"
+NATURALIDADE = re.compile(
+    r"(?<!\w)(?:naturalidade|natural\s+d[eao])(?![a-zà-ú])\s*[:\-–]?\s*"
+    r"(?:(?:brasileir[oa]|estrangeir[oa])[ \t]+)?"
+    r"(?P<v>" + _CIDADE + r"(?:[ \t]*[/\-–][ \t]*[A-Z]{2}(?![A-Za-z]))?)",
+    re.I)
 _MESES = r"(?:janeiro|fevereiro|mar[çc]o|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)"
 # Modelo de certidão do CNJ: "DATA DE NASCIMENTO POR EXTENSO" e a tabela "DIA MÊS ANO"
 DATA_NASC_CERTIDAO = [
@@ -259,6 +268,11 @@ def detectar_padroes(texto: str, tipos: set[str] | None = None) -> list[Achado]:
     for tipo, rx in simples:
         if quer(tipo):
             r.extend(_grupo(m, tipo, 0.9) for m in rx.finditer(texto))
+    if quer("NATURALIDADE"):
+        for m in NATURALIDADE.finditer(texto):
+            # com re.I a cidade aceitaria qualquer palavra; exige inicial maiúscula de verdade
+            if m.group("v")[:1].isupper():
+                r.append(_grupo(m, "NATURALIDADE", 0.85))
     if quer("DATA_NASCIMENTO"):
         for rx in DATA_NASC_CERTIDAO:
             r.extend(_grupo(m, "DATA_NASCIMENTO", 0.9) for m in rx.finditer(texto))

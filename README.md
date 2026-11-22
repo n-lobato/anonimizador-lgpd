@@ -112,7 +112,7 @@ Formatos antigos (.doc, .xls, .rtf, .odt) devem ser salvos antes como .docx ou .
 
 ## O que é detectado
 
-Nomes de pessoas (inclusive apelidos introduzidos por "vulgo" ou "conhecido como"), CPF, RG e identidade militar, CNH, título de eleitor, PIS/PASEP/NIT, CTPS, passaporte, inscrição na OAB, matrícula (funcional, SIAPE, imóvel), registro em conselho profissional (CRM, CREA, CRESS e outros), CNPJ (inclusive o novo formato alfanumérico), número de processo no padrão CNJ, e-mail, telefone, endereço, CEP, data de nascimento, placa de veículo, agência e conta bancária, cartão de crédito e endereço IP.
+Nomes de pessoas (inclusive apelidos introduzidos por "vulgo" ou "conhecido como"), CPF, RG e identidade militar (inclusive o número do FUSEX), CNH, título de eleitor, PIS/PASEP/NIT, CTPS, passaporte, inscrição na OAB, matrícula (funcional, SIAPE, imóvel), registro em conselho profissional (CRM, CREA, CRESS e outros), CNPJ (inclusive o novo formato alfanumérico), número de processo no padrão CNJ, e-mail, telefone, endereço, CEP, data de nascimento, naturalidade (só quando vem com o rótulo, como em "natural de Belém/PA" ou "Naturalidade: Belém/PA"), registro civil citado em documentos (número, livro e folha do assento), placa de veículo, agência e conta bancária, cartão de crédito e endereço IP.
 
 Em **Ferramentas > Tipos de dados a procurar** dá para desligar o que não interessa. Número de processo e CNPJ de empresa, por exemplo, costumam ser dados públicos.
 

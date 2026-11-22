@@ -706,3 +706,18 @@ def test_imagem_pequena_e_ampliada_para_o_ocr(tmp_path):
     with Image.open(io.BytesIO(_ampliada(str(pequena)))) as im:
         assert im.size == (587 * 3, 529 * 3) and im.mode == "RGB"
     assert _ampliada(str(grande)) is None
+
+
+def test_tipo_novo_entra_ligado_e_desmarcado_continua_desmarcado():
+    import json
+
+    from anonimizador import config
+    arq = config.pasta_config() / "config.json"
+    # configuração salva antes da v1.4.0: sem NATURALIDADE e com o e-mail desmarcado
+    antigos = [t for t in config.TIPOS_PADRAO if t not in ("NATURALIDADE", "EMAIL")]
+    arq.write_text(json.dumps({"tipos": antigos, "versao_config": 2}), encoding="utf-8")
+    cfg = config.carregar_config()
+    assert "NATURALIDADE" in cfg.tipos and "EMAIL" not in cfg.tipos
+    cfg.tipos.remove("NATURALIDADE")  # a pessoa desmarca o tipo novo
+    config.salvar_config(cfg)
+    assert "NATURALIDADE" not in config.carregar_config().tipos

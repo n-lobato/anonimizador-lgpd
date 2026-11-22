@@ -124,3 +124,15 @@ def test_doc_origem_da_identidade_e_rotulos_nao_sao_nomes():
     assert any(t == "MATRICULA" and v.startswith("0012345") and v.endswith("Fl 111") for t, v in achados)
     # referência a folhas dos autos não é registro civil
     assert not d.detectar("Conforme fls. 242 dos autos, o registro de nascimento foi juntado.")
+
+
+def test_naturalidade_so_com_rotulo():
+    d = Detector(set(TIPOS))
+
+    def nat(t):
+        return [a.texto for a in d.detectar(t, juntar_linhas=True) if a.tipo == "NATURALIDADE"]
+    assert nat("NACIONALIDADE NATURALIDADE\nBRASILEIRA BELEM / PA\nDOC ORIGEM") == ["BELEM / PA"]
+    assert nat("Fulano, brasileiro, natural de Belém/PA, casado") == ["Belém/PA"]
+    assert nat("natural de São José dos Campos - SP, residente") == ["São José dos Campos - SP"]
+    assert nat("o requerente é natural da cidade, onde reside") == []
+    assert nat("Mora em Belém/PA desde 2010.") == []  # sem o rótulo, cidade não é tarjada

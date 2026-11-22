@@ -21,6 +21,9 @@ MIGROU_RELATORIO = False  # True se a migração acima desligou o relatório nes
 @dataclass
 class Configuracao:
     tipos: list[str] = field(default_factory=lambda: list(TIPOS_PADRAO))
+    # tipos que existiam quando a configuração foi salva: um tipo novo do programa entra
+    # ligado, e um tipo que a pessoa desmarcou continua desmarcado
+    tipos_conhecidos: list[str] = field(default_factory=lambda: list(TIPOS_PADRAO))
     ocr: bool = True
     forcar_ocr: bool = False
     remover_imagens: bool = False
@@ -78,6 +81,12 @@ def carregar_config() -> Configuracao:
     for k, v in dados.items():
         if hasattr(cfg, k):
             setattr(cfg, k, v)
+    conhecidos = dados.get("tipos_conhecidos")
+    if dados and conhecidos is None:  # salva antes da v1.4.0, que trouxe a naturalidade
+        conhecidos = [t for t in TIPOS_PADRAO if t != "NATURALIDADE"]
+    if dados:
+        cfg.tipos += [t for t in TIPOS_PADRAO if t not in conhecidos and t not in cfg.tipos]
+    cfg.tipos_conhecidos = list(TIPOS_PADRAO)
     cfg.tipos = [t for t in cfg.tipos if t in TIPOS]
     if dados and int(dados.get("versao_config", 1)) < 2:
         if cfg.gerar_relatorio:

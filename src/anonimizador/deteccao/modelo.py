@@ -23,6 +23,7 @@ TIPOS: dict[str, tuple[str, str]] = {
     "ENDERECO": ("Endereço", "ENDERECO"),
     "CEP": ("CEP", "CEP"),
     "DATA_NASCIMENTO": ("Data de nascimento", "DATA_NASC"),
+    "NATURALIDADE": ("Naturalidade (cidade de nascimento, com o rótulo)", "NATURALIDADE"),
     "PLACA": ("Placa de veículo", "PLACA"),
     "CONTA_BANCARIA": ("Agência / conta bancária", "CONTA"),
     "CARTAO": ("Cartão de crédito", "CARTAO"),
@@ -40,7 +41,7 @@ TIPOS_ALFANUMERICOS = {
 PRIORIDADE = {t: i for i, t in enumerate([
     "TERMO", "CPF", "CNPJ", "PROCESSO", "OAB", "EMAIL", "PIS", "TITULO_ELEITOR", "CNH",
     "PASSAPORTE", "CTPS", "RG", "MATRICULA", "CARTAO", "TELEFONE", "CEP", "PLACA",
-    "CONTA_BANCARIA", "IP", "DATA_NASCIMENTO", "PESSOA", "ENDERECO",
+    "CONTA_BANCARIA", "IP", "DATA_NASCIMENTO", "NATURALIDADE", "PESSOA", "ENDERECO",
 ])}
 
 
