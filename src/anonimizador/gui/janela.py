@@ -10,9 +10,9 @@ from pathlib import Path
 from PySide6.QtCore import QEvent, QObject, Qt
 from PySide6.QtGui import QAction, QIcon
 from PySide6.QtWidgets import (QAbstractItemView, QApplication, QButtonGroup, QCheckBox, QDialog,
-                               QFileDialog, QFrame, QGroupBox, QHBoxLayout, QLabel, QLineEdit,
+                               QFileDialog, QFrame, QGridLayout, QGroupBox, QHBoxLayout, QLabel, QLineEdit,
                                QListWidget, QListWidgetItem, QMainWindow, QMessageBox, QPlainTextEdit,
-                               QProgressBar, QPushButton, QRadioButton, QStyle, QVBoxLayout, QWidget)
+                               QProgressBar, QPushButton, QRadioButton, QScrollArea, QStyle, QVBoxLayout, QWidget)
 
 from .. import AUTOR, NOME_APP, __version__
 from ..config import carregar_config, carregar_termos, pasta_config, salvar_config, salvar_termos
@@ -68,7 +68,7 @@ class ZonaSoltar(QFrame):
     def __init__(self, ao_clicar, parent=None):
         super().__init__(parent)
         self.setObjectName("zona")
-        self.setMinimumHeight(130)
+        self.setMinimumHeight(96)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         self._ao_clicar = ao_clicar
         t = self.titulo = QLabel("Arraste aqui arquivos ou pastas")
@@ -163,13 +163,14 @@ class JanelaPrincipal(QMainWindow):
     def _montar_tela(self) -> None:
         central = QWidget()
         lay = QVBoxLayout(central)
+        lay.setSpacing(6)
 
         self.zona = ZonaSoltar(self._escolher_arquivos)
         lay.addWidget(self.zona)
 
         self.lista = QListWidget()
         self.lista.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
-        self.lista.setMinimumHeight(120)
+        self.lista.setMinimumHeight(80)
         lay.addWidget(QLabel("Itens a processar:"))
         lay.addWidget(self.lista, 1)
         bl = QHBoxLayout()
@@ -183,30 +184,45 @@ class JanelaPrincipal(QMainWindow):
         bl.addStretch()
         lay.addLayout(bl)
 
+        # duas colunas de opções: em telas baixas (ex.: notebook 1366x768) a lista de uma
+        # coluna só não cabia e o Qt espremia os itens
         opcoes = QGroupBox("Opções")
         lo = QVBoxLayout(opcoes)
-        self.cb_revisar = QCheckBox("Revisar o que foi encontrado antes de salvar (recomendado)")
+        lo.setSpacing(4)
+        grade = QGridLayout()
+        grade.setHorizontalSpacing(24)
+        grade.setVerticalSpacing(4)
+        self.cb_revisar = QCheckBox("Revisar antes de salvar (recomendado)")
         self.cb_ocr = QCheckBox("Usar OCR em PDFs digitalizados e imagens")
-        self.cb_forcar = QCheckBox("Usar OCR também em páginas que já têm texto (mais lento)")
-        self.cb_remover_img = QCheckBox("Remover as imagens de documentos Word e Excel (em vez de passar OCR)")
+        self.cb_forcar = QCheckBox("OCR também em páginas que já têm texto (mais lento)")
+        self.cb_remover_img = QCheckBox("Remover as imagens do Word e do Excel")
         self.cb_remover_img.setToolTip(
             "O OCR lê texto em imagens, mas erra em fotos tortas ou borradas e não enxerga rosto,\n"
             "assinatura, carimbo ou digital. Marcando esta opção, cada imagem sai da cópia e, no Word,\n"
             "fica no lugar o texto \"[imagem removida]\".")
-        self.cb_global = QCheckBox("Mesmo código para a mesma pessoa em todos os arquivos do lote")
-        self.cb_relatorio = QCheckBox("Gerar relatório de-para (tem os dados originais; fica fora da pasta de saída)")
+        self.cb_global = QCheckBox("Mesmo código para a mesma pessoa no lote todo")
+        self.cb_global.setToolTip("Com a opção marcada, a mesma pessoa recebe o mesmo código (ex.: PESSOA_1)\n"
+                                  "em todos os arquivos processados juntos.")
+        self.cb_relatorio = QCheckBox("Gerar relatório de-para (tem os dados originais)")
         self.cb_relatorio.setToolTip(
             "Planilha que liga cada código (ex.: PESSOA_1) ao dado original e permite desfazer a\n"
             "anonimização. É gravada na pasta \"Relatório de-para (NÃO COMPARTILHAR)\", ao lado dos\n"
             "originais, e nunca dentro da pasta com os documentos anonimizados.")
         self.cb_sub = QCheckBox("Incluir subpastas")
-        for cb in (self.cb_revisar, self.cb_ocr, self.cb_forcar, self.cb_remover_img, self.cb_global,
-                   self.cb_relatorio, self.cb_sub):
-            lo.addWidget(cb)
+        self.cb_revisar.setToolTip("Mostra tudo o que foi encontrado para você conferir, desmarcar ou "
+                                   "acrescentar\nantes de gravar as cópias.")
+        self.cb_forcar.setToolTip("Lê com OCR também as imagens dentro de páginas de PDF que já têm texto.")
+        colunas = [(self.cb_revisar, self.cb_ocr, self.cb_forcar, self.cb_remover_img),
+                   (self.cb_global, self.cb_relatorio, self.cb_sub)]
+        for c, caixas in enumerate(colunas):
+            for linha, cb in enumerate(caixas):
+                grade.addWidget(cb, linha, c)
+        grade.setColumnStretch(2, 1)
+        lo.addLayout(grade)
         self.cb_ocr.toggled.connect(self.cb_forcar.setEnabled)
 
         destino = QHBoxLayout()
-        self.rb_lado = QRadioButton("Salvar na subpasta \"anonimizados\" ao lado do original")
+        self.rb_lado = QRadioButton("Salvar na subpasta \"anonimizados\", ao lado do original")
         self.rb_pasta = QRadioButton("Salvar em:")
         grupo = QButtonGroup(self)
         grupo.addButton(self.rb_lado)
@@ -230,12 +246,18 @@ class JanelaPrincipal(QMainWindow):
         self.progresso.setTextVisible(True)
         self.log = QPlainTextEdit()
         self.log.setReadOnly(True)
+        self.log.setMinimumHeight(60)
         self.log.setMaximumHeight(140)
         self.log.setAcceptDrops(False)
         lay.addWidget(self.botao)
         lay.addWidget(self.progresso)
         lay.addWidget(self.log)
-        self.setCentralWidget(central)
+        # em telas muito baixas, rola em vez de espremer os controles
+        rolagem = QScrollArea()
+        rolagem.setWidgetResizable(True)
+        rolagem.setFrameShape(QFrame.Shape.NoFrame)
+        rolagem.setWidget(central)
+        self.setCentralWidget(rolagem)
         self._carregar_opcoes()
 
     def _carregar_opcoes(self) -> None:

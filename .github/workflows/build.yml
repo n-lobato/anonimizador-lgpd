@@ -51,6 +51,14 @@ jobs:
           python build/avaliar.py --json medicao/medicao-windows-texto.json
           python build/avaliar_ocr.py --detalhes --json medicao/medicao-windows-ocr.json
 
+      - name: Fotos da janela em tamanhos de tela comuns (conferência visual)
+        run: python build/captura_janela.py capturas
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: capturas-janela-windows
+          path: capturas/*.png
+
       - name: Gerar executável
         run: pyinstaller --noconfirm anonimizador.spec
 
