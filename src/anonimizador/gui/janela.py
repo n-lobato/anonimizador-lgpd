@@ -368,10 +368,13 @@ class JanelaPrincipal(QMainWindow):
             if a.erro:
                 self._escrever(f"Erro em {a.caminho.name}: {a.erro}")
         if not s.registro.entidades:
-            QMessageBox.information(self, NOME_APP, "Nenhum dado pessoal foi detectado. Se houver nomes não "
-                                    "reconhecidos, cadastre-os em Ferramentas > Minha lista de termos.")
-            if not self.cfg.revisar:
-                return
+            # a cópia é gerada mesmo assim: ela ainda perde metadados, objetos incorporados,
+            # macros e, se a opção estiver marcada, as imagens
+            QMessageBox.information(
+                self, NOME_APP,
+                "Nenhum dado pessoal foi detectado. Se houver nomes não reconhecidos, cadastre-os em "
+                "Ferramentas > Minha lista de termos.\n\nA cópia será gerada mesmo assim, sem metadados, "
+                "objetos incorporados e macros" + (" e sem as imagens." if self.cfg.remover_imagens else "."))
         if self.cfg.revisar:
             dlg = DialogoRevisao(s, self)
             if not aceito(dlg.exec()):
