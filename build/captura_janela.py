@@ -3,6 +3,8 @@
 Uso: python build/captura_janela.py PASTA_DE_SAIDA
 """
 
+import base64
+import os
 import sys
 from pathlib import Path
 
@@ -21,6 +23,10 @@ for largura, altura in ((820, 720), (1366, 705), (1366, 600), (1920, 1000)):
     j.show()
     for _ in range(5):
         app.processEvents()
-    j.grab().save(str(saida / f"janela_{largura}x{altura}.png"))
+    arq = saida / f"janela_{largura}x{altura}.png"
+    j.grab().save(str(arq))
     print("captura", largura, altura, "tamanho real:", j.width(), j.height())
+    if os.environ.get("CAPTURA_NO_LOG") and largura == 1366:
+        # artefatos nem sempre podem ser baixados de fora; o log sempre pode
+        print(f"BASE64 {arq.name} " + base64.b64encode(arq.read_bytes()).decode())
 j.close()
