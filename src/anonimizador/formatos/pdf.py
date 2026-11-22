@@ -143,9 +143,10 @@ def _abrir(caminho: str):
     if doc.needs_pass:
         raise ErroFormato("PDF protegido por senha: remova a proteção antes de anonimizar.")
     from .limites import PAGINAS_PDF_MAX
-    if doc.page_count > PAGINAS_PDF_MAX:
+    paginas = doc.page_count
+    if paginas > PAGINAS_PDF_MAX:
         doc.close()
-        raise ErroFormato(f"PDF com {doc.page_count} páginas (limite {PAGINAS_PDF_MAX}): divida o arquivo.")
+        raise ErroFormato(f"PDF com {paginas} páginas (limite {PAGINAS_PDF_MAX}): divida o arquivo.")
     return doc
 
 
