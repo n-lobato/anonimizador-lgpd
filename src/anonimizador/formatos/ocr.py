@@ -8,8 +8,11 @@ esses arquivos na pasta "tessdata" ao lado do executável.
 from __future__ import annotations
 
 import os
+import shutil
 import sys
 from pathlib import Path
+
+_SEGUROS: dict[str, str] = {}
 
 
 def pasta_do_programa() -> Path:
@@ -39,12 +42,57 @@ def _candidatos() -> list[Path]:
     return c
 
 
+def _nome_curto(caminho: str) -> str | None:
+    """Nome 8.3 do Windows (ex.: C:\\Users\\X\\ONEDRI~1\\AREADE~1), que não tem acento."""
+    try:
+        import ctypes
+        from ctypes import wintypes
+        f = ctypes.windll.kernel32.GetShortPathNameW  # type: ignore[attr-defined]
+        f.argtypes = [wintypes.LPCWSTR, wintypes.LPWSTR, wintypes.DWORD]
+        buf = ctypes.create_unicode_buffer(1024)
+        return buf.value if f(caminho, buf, 1024) else None
+    except Exception:
+        return None
+
+
+def caminho_seguro(pasta: str) -> str:
+    """No Windows, o Tesseract não abre os dados de idioma se o caminho tiver acento ou
+    outro caractere fora do ASCII (ex.: "Área de Trabalho", "C:\\Users\\João"): o OCR
+    volta vazio, sem erro. Nesse caso usa o nome curto da pasta ou uma cópia dos dados
+    num lugar sem acento."""
+    if os.name != "nt" or pasta.isascii():
+        return pasta
+    if pasta in _SEGUROS:
+        return _SEGUROS[pasta]
+    curto = _nome_curto(pasta)
+    if curto and curto.isascii() and Path(curto).is_dir():
+        _SEGUROS[pasta] = curto
+        return curto
+    for raiz in (os.environ.get("PROGRAMDATA"), os.environ.get("PUBLIC"), r"C:\ProgramData"):
+        if not raiz:
+            continue
+        destino = Path(raiz) / "AnonimizadorLGPD" / "tessdata"
+        if not str(destino).isascii():
+            continue
+        try:
+            destino.mkdir(parents=True, exist_ok=True)
+            for arq in Path(pasta).glob("*.traineddata"):
+                alvo = destino / arq.name
+                if not alvo.exists() or alvo.stat().st_size != arq.stat().st_size:
+                    shutil.copy2(arq, alvo)
+            _SEGUROS[pasta] = str(destino)
+            return str(destino)
+        except OSError:
+            continue
+    return pasta
+
+
 def localizar_tessdata(idioma: str = "por") -> str | None:
     principal = idioma.split("+")[0]
     for p in _candidatos():
         try:
             if (p / f"{principal}.traineddata").is_file():
-                return str(p)
+                return caminho_seguro(str(p))
         except OSError:
             continue
     return None

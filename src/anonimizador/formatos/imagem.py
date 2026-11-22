@@ -11,10 +11,46 @@ JUNTAR_LINHAS = True
 from .pdf import fitz, ler_paginas, tarjar_documento
 
 
+# Imagens pequenas (ex.: foto de identidade colada no Word com 600 pixels de largura)
+# têm letras de poucos pixels, e o OCR erra. Ampliar com boa interpolação antes do
+# OCR melhorou a leitura em testes com uma identidade real (o CPF só foi achado
+# assim). A página continua do mesmo tamanho; muda só a resolução da imagem nela.
+LADO_MINIMO = 1600
+AMPLIACAO_MAXIMA = 3
+
+
+def _ampliada(caminho: str) -> bytes | None:
+    """PNG ampliado da imagem, se ela for pequena; None para usar a original."""
+    import io
+    import math
+
+    from PIL import Image
+    try:
+        with Image.open(caminho) as im:
+            if getattr(im, "n_frames", 1) > 1 or max(im.size) >= LADO_MINIMO:
+                return None
+            k = min(AMPLIACAO_MAXIMA, math.ceil(LADO_MINIMO / max(im.size)))
+            dpi = im.info.get("dpi") or (96, 96)
+            if im.mode not in ("RGB", "L"):
+                fundo = Image.new("RGB", im.size, "white")
+                rgba = im.convert("RGBA")
+                fundo.paste(rgba, mask=rgba.getchannel("A"))
+                im2 = fundo
+            else:
+                im2 = im.copy()
+            im2 = im2.resize((im.size[0] * k, im.size[1] * k), Image.LANCZOS)
+            buf = io.BytesIO()
+            im2.save(buf, format="PNG", dpi=(float(dpi[0]) * k, float(dpi[1]) * k))
+            return buf.getvalue()
+    except Exception:
+        return None
+
+
 def _como_pdf(caminho: str):
     f = fitz()
     try:
-        img = f.open(caminho)
+        ampliada = _ampliada(caminho)
+        img = f.open("png", ampliada) if ampliada else f.open(caminho)
         dados = img.convert_to_pdf()
         img.close()
     except Exception as e:

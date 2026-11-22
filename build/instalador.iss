@@ -67,3 +67,5 @@ Filename: "{app}\AnonimizadorLGPD.exe"; Description: "{cm:LaunchProgram,Anonimiz
 Type: filesandordirs; Name: "{userappdata}\AnonimizadorLGPD"
 ; atalho do menu "Enviar para", se o usuário tiver criado pela janela
 Type: files; Name: "{userappdata}\Microsoft\Windows\SendTo\Anonimizador LGPD.lnk"
+; cópia dos dados do OCR feita quando o programa fica numa pasta com acento no caminho
+Type: filesandordirs; Name: "{commonappdata}\AnonimizadorLGPD"

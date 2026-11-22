@@ -161,7 +161,8 @@ def extrair(caminho: str, opcoes: Opcoes) -> Extraido:
     if imagens and not opcoes.remover_imagens:
         analise = imagens_office.analisar({n: d for n, (_, d) in imagens.items()}, opcoes)
         partes.append(analise.texto())
-    return Extraido("\n".join(partes), _avisos_estrutura(caminho), analise)
+    avisos = _avisos_estrutura(caminho) + (imagens_office.avisos_analise(analise) if analise else [])
+    return Extraido("\n".join(partes), avisos, analise)
 
 
 def anonimizar(caminho: str, saida: str, substituidor, opcoes: Opcoes, cache=None) -> list[str]:
@@ -190,7 +191,8 @@ def anonimizar(caminho: str, saida: str, substituidor, opcoes: Opcoes, cache=Non
                 img.ref = io.BytesIO(novo)
             tarjadas += acao == "tarjada"
         avisos_imagens += imagens_office.aviso_resultado(analise, tarjadas)
-        avisos_imagens += imagens_office.avisos_analise(analise)
+        if not isinstance(cache, imagens_office.Analise):
+            avisos_imagens += imagens_office.avisos_analise(analise)
     for cel in _celulas(wb):
         f = _formula(cel.value)
         if f is not None:

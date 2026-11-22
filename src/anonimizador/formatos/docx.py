@@ -160,6 +160,7 @@ def extrair(caminho: str, opcoes: Opcoes) -> Extraido:
         elif imagens:
             analise = imagens_office.analisar(imagens, opcoes)
             partes.append(analise.texto())
+            avisos.extend(imagens_office.avisos_analise(analise))
         objetos = [n for n in nomes if n.startswith("word/embeddings/")]
         if objetos:
             avisos.append(f"O documento tem {len(objetos)} objeto(s) incorporado(s) (planilhas, PDFs ou "
@@ -406,7 +407,8 @@ def anonimizar(caminho: str, saida: str, substituidor, opcoes: Opcoes, cache=Non
                 partes[nome] = novo
                 tarjadas += acao == "tarjada"
             avisos += imagens_office.aviso_resultado(analise, tarjadas)
-            avisos += imagens_office.avisos_analise(analise, presentes=set(midia))
+            if not isinstance(cache, imagens_office.Analise):  # sem análise prévia, avisa agora
+                avisos += imagens_office.avisos_analise(analise, presentes=set(midia))
     tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".docx", dir=str(Path(saida).parent))
     tmp.close()
     try:

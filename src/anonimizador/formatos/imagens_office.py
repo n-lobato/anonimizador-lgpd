@@ -29,6 +29,7 @@ class Analise:
     nao_legiveis: list[str] = field(default_factory=list)
     falhas: list[str] = field(default_factory=list)
     sem_ocr: list[str] = field(default_factory=list)
+    mensagens: list[str] = field(default_factory=list)  # avisos do OCR (ex.: motor sem idioma)
 
     def texto(self) -> str:
         return "\n\n".join(t for t, _ in self.textos.values() if t.strip())
@@ -55,9 +56,15 @@ def analisar(imagens: dict[str, bytes], opcoes: Opcoes) -> Analise:
             arq.write_bytes(dados)
             try:
                 ext = imagem.extrair(str(arq), opcoes)
-                r.textos[nome] = (ext.texto, ext.cache)
-            except Exception:  # imagem corrompida ou formato interno incomum
+            except Exception as e:  # imagem corrompida ou formato interno incomum
                 r.falhas.append(nome)
+                r.mensagens.append(str(e))
+                continue
+            if ext.avisos:  # o OCR falhou na imagem (os avisos dizem por quê)
+                r.falhas.append(nome)
+                r.mensagens += [a.split(": ", 1)[-1] for a in ext.avisos]
+            else:
+                r.textos[nome] = (ext.texto, ext.cache)
     return r
 
 
@@ -115,7 +122,8 @@ def avisos_analise(analise: Analise, presentes: set[str] | None = None) -> list[
     """Avisos sobre imagens que ficaram sem análise; `presentes` limita às que ficaram na cópia."""
     def so(lista):
         return [n for n in lista if presentes is None or n in presentes]
-    analise = Analise(analise.textos, so(analise.nao_legiveis), so(analise.falhas), so(analise.sem_ocr))
+    analise = Analise(analise.textos, so(analise.nao_legiveis), so(analise.falhas), so(analise.sem_ocr),
+                      analise.mensagens)
     r = []
     if analise.nao_legiveis:
         r.append(f"{len(analise.nao_legiveis)} imagem(ns) em formato que o OCR não lê (EMF, WMF, SVG, "
@@ -124,5 +132,7 @@ def avisos_analise(analise: Analise, presentes: set[str] | None = None) -> list[
         r.append(f"O OCR está desligado: {len(analise.sem_ocr)} imagem(ns) do documento NÃO foram "
                  "analisadas e ficaram como estavam.")
     if analise.falhas:
-        r.append(f"{len(analise.falhas)} imagem(ns) não puderam ser lidas e ficaram como estavam.")
+        motivo = f" Motivo: {sorted(set(analise.mensagens))[0]}" if analise.mensagens else ""
+        r.append(f"ATENÇÃO: {len(analise.falhas)} imagem(ns) NÃO puderam ser lidas pelo OCR e ficaram "
+                 f"como estavam, sem tarja.{motivo}")
     return r

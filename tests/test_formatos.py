@@ -1,3 +1,4 @@
+import os
 import zipfile
 from pathlib import Path
 
@@ -639,3 +640,69 @@ def test_imagem_sem_dados_perde_so_os_metadados(tmp_path):
         with Image.open(io.BytesIO(z.read(midia[0]))) as im:
             assert not im.getexif() and im.size == (60, 40)
     assert any("OCR está desligado" in av for av in a.avisos)
+
+
+def _limpar_caches_ocr():
+    from anonimizador.formatos import ocr, pdf
+    ocr._SEGUROS.clear()
+    pdf._MOTOR_OK.clear()
+
+
+@pytest.mark.skipif(os.name != "nt", reason="o problema do caminho com acento é só do Windows")
+def test_ocr_funciona_em_pasta_com_acento(tmp_path, monkeypatch):
+    """O Tesseract do Windows não abria os dados de idioma em caminho com acento (ex.:
+    "Área de Trabalho"): o OCR voltava vazio, sem erro."""
+    _ocr_disponivel()
+    import shutil
+
+    from anonimizador.formatos import Opcoes, imagem
+    from anonimizador.formatos.ocr import localizar_tessdata
+    original = localizar_tessdata("por")
+    pasta = tmp_path / "Área de Trabalho" / "tessdata"
+    pasta.mkdir(parents=True)
+    for f in Path(original).glob("*.traineddata"):
+        shutil.copy2(f, pasta)
+    monkeypatch.setenv("TESSDATA_PREFIX", str(pasta))
+    _limpar_caches_ocr()
+    try:
+        assert localizar_tessdata("por").isascii()
+        arq = tmp_path / "doc.png"
+        arq.write_bytes(_imagem_com_cpf())
+        assert "529.982" in imagem.extrair(str(arq), Opcoes()).texto.replace(" ", "")
+    finally:
+        _limpar_caches_ocr()
+
+
+def test_ocr_que_nao_carrega_o_idioma_avisa(tmp_path, monkeypatch):
+    """Se o motor não consegue ler, o programa avisa em vez de dizer que não achou nada."""
+    _ocr_disponivel()
+    import io
+    docx = pytest.importorskip("docx")
+    pasta = tmp_path / "tessdata_quebrado"
+    pasta.mkdir()
+    (pasta / "por.traineddata").write_bytes(b"isto nao e um modelo do tesseract")
+    monkeypatch.setenv("TESSDATA_PREFIX", str(pasta))
+    _limpar_caches_ocr()
+    try:
+        d = docx.Document()
+        d.add_picture(io.BytesIO(_imagem_com_cpf()))
+        f = tmp_path / "foto.docx"
+        d.save(f)
+        s = _rodar([f])
+        avisos = " ".join(s.arquivos[0].avisos)
+        assert "NÃO puderam ser lidas" in avisos and "não conseguiu carregar" in avisos
+    finally:
+        _limpar_caches_ocr()
+
+
+def test_imagem_pequena_e_ampliada_para_o_ocr(tmp_path):
+    from PIL import Image
+
+    from anonimizador.formatos.imagem import _ampliada
+    pequena, grande = tmp_path / "p.png", tmp_path / "g.png"
+    Image.new("RGBA", (587, 529), (255, 255, 255, 0)).save(pequena)
+    Image.new("RGB", (2000, 1000), "white").save(grande)
+    import io
+    with Image.open(io.BytesIO(_ampliada(str(pequena)))) as im:
+        assert im.size == (587 * 3, 529 * 3) and im.mode == "RGB"
+    assert _ampliada(str(grande)) is None

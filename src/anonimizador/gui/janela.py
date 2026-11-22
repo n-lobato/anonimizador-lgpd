@@ -364,9 +364,13 @@ class JanelaPrincipal(QMainWindow):
     def _analise_concluida(self) -> None:
         self._ocupado(False)
         s = self.sessao
+        self._avisos_vistos = {}
         for a in s.arquivos:
             if a.erro:
                 self._escrever(f"Erro em {a.caminho.name}: {a.erro}")
+            for av in a.avisos:  # já na análise, antes de decidir
+                self._escrever(f"   Aviso ({a.caminho.name}): {av}")
+            self._avisos_vistos[a.chave] = len(a.avisos)
         if not s.registro.entidades:
             # a cópia é gerada mesmo assim: ela ainda perde metadados, objetos incorporados,
             # macros e, se a opção estiver marcada, as imagens
@@ -391,7 +395,7 @@ class JanelaPrincipal(QMainWindow):
                 self._escrever(f"OK: {a.saida}")
             if a.erro:
                 self._escrever(f"Erro em {a.caminho.name}: {a.erro}")
-            for av in a.avisos:
+            for av in a.avisos[getattr(self, "_avisos_vistos", {}).get(a.chave, 0):]:
                 self._escrever(f"   Aviso ({a.caminho.name}): {av}")
         relatorio = None
         if self.cfg.gerar_relatorio and ok:

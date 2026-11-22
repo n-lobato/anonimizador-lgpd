@@ -38,10 +38,36 @@ def _flags(f) -> int:
     return getattr(f, "TEXT_PRESERVE_WHITESPACE", 1) | getattr(f, "TEXT_MEDIABOX_CLIP", 64)
 
 
+_MOTOR_OK: dict[tuple[str, str], bool] = {}
+
+
+def _conferir_motor(pasta: str, idioma: str) -> None:
+    """O Tesseract não dá erro quando não consegue carregar o idioma: só devolve texto
+    vazio. Uma leitura de teste, feita uma vez, evita que isso passe em silêncio."""
+    chave = (pasta, idioma)
+    if chave not in _MOTOR_OK:
+        f = fitz()
+        doc = f.open()
+        pg = doc.new_page(width=320, height=80)
+        pg.insert_text((20, 50), "TESTE DE LEITURA 2468", fontsize=20)
+        try:
+            tp = pg.get_textpage_ocr(language=idioma, dpi=200, full=True, tessdata=pasta)
+            _MOTOR_OK[chave] = "TESTE" in pg.get_text(textpage=tp).upper()
+        except Exception:
+            _MOTOR_OK[chave] = False
+        finally:
+            doc.close()
+    if not _MOTOR_OK[chave]:
+        raise ErroFormato(f"o OCR não conseguiu carregar os dados do idioma em \"{pasta}\". Nenhum texto "
+                          "em imagem foi lido. Mova o programa para uma pasta sem acento no caminho e "
+                          "tente de novo.")
+
+
 def _textpage_ocr(page, opcoes: Opcoes, completo: bool):
     pasta = localizar_tessdata(opcoes.idioma_ocr)
     if not pasta:
         raise ErroFormato("OCR indisponível: dados do idioma português (por.traineddata) não encontrados.")
+    _conferir_motor(pasta, opcoes.idioma_ocr)
     try:
         return page.get_textpage_ocr(language=opcoes.idioma_ocr, dpi=opcoes.dpi_ocr,
                                      full=completo, tessdata=pasta)
