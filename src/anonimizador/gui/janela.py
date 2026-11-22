@@ -114,6 +114,11 @@ class JanelaPrincipal(QMainWindow):
         self._montar_menu()
         self._montar_tela()
         self.setStyleSheet(ESTILO_ZONA)
+        from .. import config as _config
+        if _config.MIGROU_RELATORIO:
+            self._escrever("Novidade da versão 1.3.1: o relatório de-para, que tem os dados originais, "
+                           "agora vem desligado e é gravado fora da pasta de saída. Se quiser usá-lo, "
+                           "marque a opção de novo.")
         if executando_elevado():
             self.zona.modo_sem_arrastar()
             self._escrever("Aviso: " + AVISO_ELEVADO)
@@ -184,7 +189,11 @@ class JanelaPrincipal(QMainWindow):
         self.cb_ocr = QCheckBox("Usar OCR em PDFs digitalizados e imagens")
         self.cb_forcar = QCheckBox("Usar OCR também em páginas que já têm texto (mais lento)")
         self.cb_global = QCheckBox("Mesmo código para a mesma pessoa em todos os arquivos do lote")
-        self.cb_relatorio = QCheckBox("Gerar relatório com a tabela de-para (arquivo sensível)")
+        self.cb_relatorio = QCheckBox("Gerar relatório de-para (tem os dados originais; fica fora da pasta de saída)")
+        self.cb_relatorio.setToolTip(
+            "Planilha que liga cada código (ex.: PESSOA_1) ao dado original e permite desfazer a\n"
+            "anonimização. É gravada na pasta \"Relatório de-para (NÃO COMPARTILHAR)\", ao lado dos\n"
+            "originais, e nunca dentro da pasta com os documentos anonimizados.")
         self.cb_sub = QCheckBox("Incluir subpastas")
         for cb in (self.cb_revisar, self.cb_ocr, self.cb_forcar, self.cb_global, self.cb_relatorio, self.cb_sub):
             lo.addWidget(cb)
@@ -378,7 +387,7 @@ class JanelaPrincipal(QMainWindow):
             pasta = s.pasta_relatorio()
             if pasta:
                 relatorio = gerar(s, pasta)
-                self._escrever(f"Relatório (guarde em local seguro): {relatorio}")
+                self._escrever(f"Relatório com os dados originais (não compartilhe): {relatorio}")
         erros = sum(1 for a in s.arquivos if a.erro)
         avisos = sum(len(a.avisos) for a in s.arquivos)
         caixa = QMessageBox(self)
@@ -390,7 +399,8 @@ class JanelaPrincipal(QMainWindow):
         caixa.addButton("Fechar", QMessageBox.ButtonRole.RejectRole)
         caixa.exec()
         if abrir is not None and caixa.clickedButton() is abrir:
-            abrir_no_sistema(s.pasta_relatorio() or ok[0].saida.parent)
+            # abre a pasta com os documentos anonimizados, e não a do relatório
+            abrir_no_sistema(Path(self.cfg.pasta_saida) if self.cfg.pasta_saida else ok[0].saida.parent)
 
     # --------------------------------------------------------------- menus
     def _editar_termos(self) -> None:

@@ -66,6 +66,16 @@ sha256sum AnonimizadorLGPD-linux-amd64.deb                           # Linux
 
 O código mostrado deve ser igual ao do arquivo `.sha256` e ao das notas da versão. Se for diferente, não use o arquivo.
 
+O hash só prova que o arquivo chegou inteiro: como fica na mesma página do download, quem conseguisse trocar um pacote poderia trocar o hash junto. Por isso, a partir da versão 1.3.1, cada pacote também tem um **atestado de origem** assinado pelo GitHub, que prova que ele foi gerado pelo workflow deste repositório, a partir de um commit específico. O atestado fica registrado fora da página de Releases e não pode ser forjado por quem não controla o repositório. Para conferir, com o [GitHub CLI](https://cli.github.com) instalado:
+
+```
+gh attestation verify AnonimizadorLGPD-windows-instalador.exe -R n-lobato/anonimizador-lgpd
+```
+
+A resposta deve indicar que a verificação foi bem-sucedida e mostrar o workflow `.github/workflows/build.yml` deste repositório. O programa ainda não tem assinatura digital paga da Microsoft nem da Apple, por isso os avisos do Windows e do Mac na primeira abertura continuam.
+
+Cada pacote traz também o arquivo `THIRD-PARTY-NOTICES.md` e a pasta `LICENCAS`, com os componentes de terceiros incluídos e as licenças de cada um.
+
 ## Como usar
 
 Há três jeitos de colocar arquivos na fila:
@@ -95,7 +105,7 @@ Os arquivos são gravados na subpasta `anonimizados`, ao lado dos originais, com
 | PDF digitalizado | OCR em português e tarja nos pixels da imagem. |
 | Imagens (.png, .jpg, .tif, .bmp) | OCR e tarja; a saída é uma imagem do mesmo tipo, sem os metadados EXIF. |
 | Texto (.txt, .md, .csv, .srt, .vtt) | Substituição direta, mantendo a codificação do arquivo. |
-| Excel (.xlsx) | Substitui o texto das células e comentários e limpa o autor. |
+| Excel (.xlsx) | Substitui o texto das células, dos comentários, dos links, dos cabeçalhos e rodapés e os textos entre aspas dentro de fórmulas (referências e funções ficam intactas), e limpa o autor. Avisa quando há tabelas dinâmicas ou vínculos com outros arquivos, cujos dados guardados não são analisados. |
 
 Formatos antigos (.doc, .xls, .rtf, .odt) devem ser salvos antes como .docx ou .xlsx. Apresentações ainda não são suportadas (exporte para PDF).
 
@@ -166,7 +176,11 @@ Se o [spaCy](https://spacy.io) com um modelo em português estiver instalado (ve
 
 ## Relatório de-para
 
-Opcionalmente, o programa gera uma planilha `relatorio_anonimizacao_AAAAMMDD_HHMMSS.xlsx` com cada código e o dado original, as ocorrências e os avisos de cada arquivo. **Esse arquivo contém os dados pessoais originais.** Não o envie junto com os documentos anonimizados.
+Se você marcar a opção (ela vem desmarcada), o programa gera uma planilha `relatorio_anonimizacao_AAAAMMDD_HHMMSS.xlsx` com cada código e o dado original, as ocorrências e os avisos de cada arquivo. **Esse arquivo contém os dados pessoais originais e permite desfazer a anonimização.**
+
+Para que ele não seja enviado por engano, a planilha nunca fica na pasta dos documentos anonimizados. Ela vai para a pasta `Relatório de-para (NÃO COMPARTILHAR)`, ao lado dos originais. Se essa pasta ficar dentro da pasta de saída escolhida, o relatório vai para a pasta de configurações do programa (subpasta `relatorios`). O caminho aparece no registro da janela ao final. Os textos da planilha são gravados sempre como texto, nunca como fórmula.
+
+Até a versão 1.3.0 a opção vinha marcada e o relatório ficava dentro da pasta `anonimizados`. Se você usou essas versões, confira se não enviou algum relatório junto com os documentos. Na primeira abertura da 1.3.1 a opção é desmarcada uma vez; depois disso, a sua escolha é respeitada.
 
 ## Linha de comando
 
@@ -175,7 +189,8 @@ O pacote inclui a linha de comando, útil para lotes grandes ou automação (sem
 ```
 anonimizador-cli.exe "C:\Processos\2026" -o "D:\Anonimizados"
 anonimizador-cli.exe peticao.docx --apenas-analisar
-anonimizador-cli.exe pasta --tipos PESSOA,CPF,RG,ENDERECO --sem-relatorio
+anonimizador-cli.exe pasta --tipos PESSOA,CPF,RG,ENDERECO
+anonimizador-cli.exe pasta --relatorio        # gera também o de-para (fora da pasta de saída)
 anonimizador-cli.exe --help
 ```
 

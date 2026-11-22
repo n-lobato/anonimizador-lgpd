@@ -43,4 +43,12 @@ for idioma, esperado in SHA256.items():
     if obtido != esperado:
         arq.unlink()
         sys.exit(f"SHA-256 diferente do esperado em {idioma}.traineddata: {obtido}")
+
+# texto da licença (Apache-2.0) do mesmo commit, para ir junto no pacote
+licenca = destino / "LICENSE-tessdata_fast.txt"
+if not licenca.exists():
+    urllib.request.urlretrieve(f"https://github.com/tesseract-ocr/tessdata_fast/raw/{COMMIT}/LICENSE", licenca)
+if "Apache License" not in licenca.read_text(encoding="utf-8", errors="replace"):
+    licenca.unlink()
+    sys.exit("O arquivo LICENSE do tessdata_fast não é a licença Apache esperada.")
 print("tessdata pronto e conferido em", destino)

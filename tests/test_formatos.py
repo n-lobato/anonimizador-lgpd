@@ -74,6 +74,41 @@ def test_xlsx(tmp_path):
     assert ws2["C2"].value == 100
 
 
+def test_xlsx_formulas_links_e_cabecalho(tmp_path):
+    """Textos dentro de fórmulas, links e cabeçalhos também são dados pessoais."""
+    from openpyxl import Workbook, load_workbook
+    wb = Workbook()
+    ws = wb.active
+    ws["A1"] = '=CONCATENATE("Requerente: Lucas Ferreira Gomes", " - fim")'
+    ws["A2"] = '=IF(B1>0,"CPF 529.982.247-25","")'
+    ws["A3"] = "contato"
+    ws["A3"].hyperlink = "mailto:lucas.gomes@exemplo.com.br"
+    ws["A4"] = "=SUM(1,2)"
+    ws.oddHeader.center.text = "Processo de Lucas Ferreira Gomes"
+    f = tmp_path / "formulas.xlsx"
+    wb.save(f)
+    s = _rodar([f])
+    ws2 = load_workbook(s.arquivos[0].saida).active
+    tudo = " ".join(str(ws2[c].value) for c in ("A1", "A2", "A4"))
+    assert "Lucas" not in tudo and "529.982" not in tudo
+    assert ws2["A1"].value.startswith('=CONCATENATE("Requerente: [PESSOA_1]"')
+    assert ws2["A2"].value == '=IF(B1>0,"CPF [CPF_1]","")'
+    assert ws2["A4"].value == "=SUM(1,2)"
+    assert "lucas" not in ws2["A3"].hyperlink.target.lower()
+    assert "Lucas" not in ws2.oddHeader.center.text
+
+
+def test_formula_aspas_escapadas():
+    from anonimizador.formatos.planilha import literais, substituir_formula
+
+    class Sub:
+        def substituir(self, t):
+            return t.replace('Ana "Tita" Souza', "[PESSOA_1]")
+    f = '="Sra. Ana ""Tita"" Souza"&A1'
+    assert literais(f) == ['Sra. Ana "Tita" Souza']
+    assert substituir_formula(f, Sub()) == '="Sra. [PESSOA_1]"&A1'
+
+
 def test_listagem_de_pasta_ignora_saidas(tmp_path):
     (tmp_path / "sub").mkdir()
     (tmp_path / "a.txt").write_text("x")
@@ -101,6 +136,63 @@ def test_relatorio(tmp_path, peticao):
     linhas = list(wb["De-para"].iter_rows(values_only=True))
     assert ("PESSOA_1" in [l[0] for l in linhas])
     assert any(l[2] == "529.982.247-25" for l in linhas)
+
+
+
+def test_relatorio_fica_fora_da_pasta_de_saida(tmp_path, peticao):
+    """Quem compacta a pasta "anonimizados" para enviar não pode levar o de-para junto."""
+    from anonimizador.processador import PASTA_RELATORIO
+    from anonimizador.relatorio import gerar
+    docs = tmp_path / "docs"
+    docs.mkdir()
+    (docs / "p.txt").write_text(peticao, encoding="utf-8")
+    s = _rodar([docs])
+    saida = s.arquivos[0].saida.parent
+    rel = gerar(s, s.pasta_relatorio())
+    assert rel.parent == (docs / PASTA_RELATORIO).resolve()
+    assert saida.resolve() not in rel.parents
+    # a pasta do relatório não entra numa nova rodada sobre a mesma pasta
+    arquivos, _ = listar_arquivos([docs])
+    assert [a.caminho.name for a in arquivos] == ["p.txt"]
+
+
+def test_relatorio_com_saida_acima_dos_originais(tmp_path, peticao):
+    from anonimizador.config import pasta_config
+    docs = tmp_path / "docs"
+    docs.mkdir()
+    (docs / "p.txt").write_text(peticao, encoding="utf-8")
+    s = _rodar([docs], pasta_saida=str(tmp_path))
+    destino = s.pasta_relatorio()
+    assert destino == pasta_config() / "relatorios"
+
+
+def test_relatorio_nao_vira_formula(tmp_path):
+    from openpyxl import Workbook, load_workbook
+
+    from anonimizador.relatorio import _como_texto
+    wb = Workbook()
+    wb.active.append(["=HYPERLINK(\"http://exemplo.invalid\",\"clique\")", "ok"])
+    _como_texto(wb.active)
+    f = tmp_path / "r.xlsx"
+    wb.save(f)
+    with zipfile.ZipFile(f) as z:
+        assert "<f>" not in z.read("xl/worksheets/sheet1.xml").decode()
+    assert load_workbook(f).active["A1"].value.startswith("=HYPERLINK")
+
+
+def test_relatorio_desligado_por_padrao_e_migracao(tmp_path):
+    import json
+
+    from anonimizador import config
+    assert Configuracao().gerar_relatorio is False
+    arq = config.pasta_config() / "config.json"
+    arq.write_text(json.dumps({"gerar_relatorio": True, "ocr": False}), encoding="utf-8")
+    cfg = config.carregar_config()
+    assert cfg.gerar_relatorio is False and cfg.ocr is False and config.MIGROU_RELATORIO
+    config.salvar_config(cfg)
+    cfg.gerar_relatorio = True
+    config.salvar_config(cfg)
+    assert config.carregar_config().gerar_relatorio is True  # escolha feita depois é respeitada
 
 
 # ------------------------------------------------------------------ PDF

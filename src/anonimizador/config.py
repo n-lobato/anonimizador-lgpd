@@ -12,6 +12,11 @@ from .deteccao.modelo import TIPOS
 
 TIPOS_PADRAO = [t for t in TIPOS if t != "TERMO"]
 
+# 2 (v1.3.1): o relatório de-para passou a vir desligado. Configurações salvas antes disso
+# tinham a opção ligada só porque era o padrão, então ela é desligada uma vez.
+VERSAO_CONFIG = 2
+MIGROU_RELATORIO = False  # True se a migração acima desligou o relatório nesta execução
+
 
 @dataclass
 class Configuracao:
@@ -22,10 +27,11 @@ class Configuracao:
     dpi_ocr: int = 300
     revisar: bool = True
     codigos_globais: bool = True
-    gerar_relatorio: bool = True
+    gerar_relatorio: bool = False  # o relatório tem os dados originais: só quando pedido
     incluir_subpastas: bool = True
     pasta_saida: str = ""  # vazio = subpasta "anonimizados" ao lado de cada original
     sufixo: str = "_anonimizado"
+    versao_config: int = VERSAO_CONFIG
 
     def opcoes_formato(self):
         from .formatos import Opcoes
@@ -65,12 +71,18 @@ def _gravar_json(caminho: Path, dados: dict) -> None:
 
 
 def carregar_config() -> Configuracao:
+    global MIGROU_RELATORIO
     dados = _ler_json(pasta_config() / "config.json")
     cfg = Configuracao()
     for k, v in dados.items():
         if hasattr(cfg, k):
             setattr(cfg, k, v)
     cfg.tipos = [t for t in cfg.tipos if t in TIPOS]
+    if dados and int(dados.get("versao_config", 1)) < 2:
+        if cfg.gerar_relatorio:
+            MIGROU_RELATORIO = True
+        cfg.gerar_relatorio = False
+    cfg.versao_config = VERSAO_CONFIG
     return cfg
 
 

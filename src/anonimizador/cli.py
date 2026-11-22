@@ -20,7 +20,9 @@ def _parser() -> argparse.ArgumentParser:
     p.add_argument("-o", "--saida", help="pasta de saída (padrão: subpasta 'anonimizados' ao lado do original)")
     p.add_argument("--sem-ocr", action="store_true", help="não usar OCR em páginas digitalizadas")
     p.add_argument("--forcar-ocr", action="store_true", help="usar OCR também em páginas com texto")
-    p.add_argument("--sem-relatorio", action="store_true", help="não gerar a tabela de-para")
+    p.add_argument("--relatorio", action="store_true",
+                   help="gerar a tabela de-para com os dados ORIGINAIS (fica fora da pasta de saída)")
+    p.add_argument("--sem-relatorio", action="store_true", help="não gerar a tabela de-para (padrão)")
     p.add_argument("--por-arquivo", action="store_true", help="numerar os códigos separadamente em cada arquivo")
     p.add_argument("--sem-subpastas", action="store_true", help="não entrar nas subpastas")
     p.add_argument("--tipos", help="tipos a detectar, separados por vírgula (ex.: PESSOA,CPF,RG)")
@@ -44,6 +46,8 @@ def main(argv: list[str] | None = None) -> int:
         cfg.ocr = False
     if args.forcar_ocr:
         cfg.forcar_ocr = True
+    if args.relatorio:
+        cfg.gerar_relatorio = True
     if args.sem_relatorio:
         cfg.gerar_relatorio = False
     if args.por_arquivo:
@@ -82,7 +86,7 @@ def main(argv: list[str] | None = None) -> int:
     if cfg.gerar_relatorio and any(a.saida for a in sessao.arquivos):
         pasta = sessao.pasta_relatorio()
         if pasta:
-            print(f"Relatório: {gerar(sessao, pasta)}")
+            print(f"Relatório com os dados originais (não compartilhe): {gerar(sessao, pasta)}")
     return 2 if erros else 0
 
 

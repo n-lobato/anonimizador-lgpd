@@ -22,6 +22,8 @@ rm -rf dist
 [ -f "$APP/Contents/Resources/tessdata/por.traineddata" ] || [ -f "$APP/Contents/Frameworks/tessdata/por.traineddata" ] \
     || { echo "ERRO: dados do OCR não entraram no aplicativo"; exit 1; }
 
+"$PY" build/coletar_licencas.py "$APP/Contents/Resources"
+
 echo "2/5 Conferindo a versão mínima do macOS..."
 # a maior exigência entre as bibliotecas incluídas vale para o pacote inteiro
 LISTA="$(mktemp)"
@@ -50,6 +52,9 @@ DMG_DIR="$(mktemp -d)"
 cp -R "$APP" "$DMG_DIR/"
 ln -s /Applications "$DMG_DIR/Aplicativos"
 sed "s/{MINIMO}/$MINIMO/" build/LEIA-ME-mac.txt > "$DMG_DIR/LEIA-ME.txt"
+cp "$APP/Contents/Resources/THIRD-PARTY-NOTICES.md" "$DMG_DIR/"
+cp -R "$APP/Contents/Resources/LICENCAS" "$DMG_DIR/"
+cp LICENSE "$DMG_DIR/LICENSE.txt"
 SAIDA="AnonimizadorLGPD-mac-$ARQ.dmg"
 rm -f "$SAIDA"
 # nas máquinas Mac do GitHub o hdiutil às vezes falha com "Resource busy" sem motivo real

@@ -12,6 +12,8 @@ from .deteccao.detector import Detector
 from .formatos import EXTENSOES, NAO_SUPORTADOS, ErroFormato, modulo_para
 from .registro import Registro, Substituidor
 
+PASTA_RELATORIO = "Relatório de-para (NÃO COMPARTILHAR)"
+
 PASTA_SAIDA_PADRAO = "anonimizados"
 Progresso = Callable[[int, int, str], None]
 
@@ -44,7 +46,7 @@ def listar_arquivos(entradas: list[str | Path], incluir_subpastas: bool = True,
         if k in vistos:
             return
         ext = p.suffix.lower()
-        if p.stem.endswith(sufixo) or p.name.startswith("~$"):
+        if p.stem.endswith(sufixo) or p.name.startswith("~$") or p.name.startswith("relatorio_anonimizacao_"):
             return
         if ext in EXTENSOES:
             vistos.add(k)
@@ -58,6 +60,7 @@ def listar_arquivos(entradas: list[str | Path], incluir_subpastas: bool = True,
             padrao = p.rglob("*") if incluir_subpastas else p.glob("*")
             for f in sorted(padrao):
                 if f.is_file() and PASTA_SAIDA_PADRAO not in f.relative_to(p).parts[:-1] \
+                        and PASTA_RELATORIO not in f.relative_to(p).parts[:-1] \
                         and not any(parte.startswith(".") for parte in f.relative_to(p).parts):
                     adicionar(f, p)
         elif p.is_file():
@@ -155,13 +158,25 @@ class Sessao:
             progresso(len(validos), len(validos), "Concluído")
 
     def pasta_relatorio(self) -> Path | None:
-        if self.cfg.pasta_saida:
-            return Path(self.cfg.pasta_saida)
-        pastas = sorted({a.saida.parent for a in self.arquivos if a.saida})
-        if not pastas:
+        """Onde gravar o relatório de-para, que tem os dados ORIGINAIS.
+
+        Nunca dentro de uma pasta de saída: é ela que o usuário costuma compactar e
+        enviar. Vai para uma subpasta ao lado dos originais, que já são sigilosos, ou,
+        se isso cair dentro de uma saída, para a pasta de configurações do programa.
+        """
+        feitos = [a for a in self.arquivos if a.saida]
+        if not feitos:
             return None
+        saidas = {a.saida.parent.resolve() for a in feitos}
+        if self.cfg.pasta_saida:
+            saidas.add(Path(self.cfg.pasta_saida).resolve())
+        originais = sorted({a.caminho.parent.resolve() for a in feitos})
         try:
-            comum = Path(os.path.commonpath([str(p) for p in pastas]))
-        except ValueError:
-            return pastas[0]
-        return comum if comum in pastas else pastas[0]
+            base = Path(os.path.commonpath([str(p) for p in originais]))
+        except ValueError:  # discos diferentes no Windows
+            base = originais[0]
+        destino = base / PASTA_RELATORIO
+        if any(s == destino or s in destino.parents for s in saidas):
+            from .config import pasta_config
+            destino = pasta_config() / "relatorios"
+        return destino

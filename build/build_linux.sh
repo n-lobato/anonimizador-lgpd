@@ -22,6 +22,7 @@ rm -rf dist
 APP="dist/AnonimizadorLGPD"
 [ -f "$APP/_internal/tessdata/por.traineddata" ] || { echo "ERRO: dados do OCR não entraram no pacote"; exit 1; }
 cp README.md LICENSE "$APP/"
+"$PY" build/coletar_licencas.py "$APP"
 cp build/LEIA-ME-linux.txt "$APP/LEIA-ME.txt"
 cp assets/icone.png "$APP/$NOME.png"
 
@@ -48,6 +49,7 @@ cat > "$DEB/usr/share/doc/$NOME/copyright" <<COPY
 Anonimizador LGPD
 Copyright (C) 2026 n-lobato
 Licença: GNU GPL v3. Texto completo em /opt/$NOME/LICENSE.
+Componentes de terceiros e suas licenças: /opt/$NOME/THIRD-PARTY-NOTICES.md e /opt/$NOME/LICENCAS.
 Código-fonte: https://github.com/n-lobato/anonimizador-lgpd
 COPY
 TAMANHO=$(du -sk "$DEB/opt" | cut -f1)

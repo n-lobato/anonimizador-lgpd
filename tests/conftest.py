@@ -24,6 +24,7 @@ def config_isolada(tmp_path, monkeypatch):
     pasta.mkdir()
     monkeypatch.setenv("XDG_CONFIG_HOME", str(pasta))
     monkeypatch.setenv("APPDATA", str(pasta))
+    monkeypatch.setenv("HOME", str(pasta))  # no Mac a configuração fica em ~/Library
     yield
 
 

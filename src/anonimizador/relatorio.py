@@ -12,6 +12,17 @@ AVISO = ("ATENÇÃO: este arquivo contém os dados pessoais ORIGINAIS e permite 
          "anonimizados.")
 
 
+def _como_texto(planilha) -> None:
+    """Na última linha, garante que nada que comece com "=" vire fórmula.
+
+    Os valores vêm dos documentos e da lista de termos; um termo como =HYPERLINK(...)
+    não pode ser executado por quem abrir o relatório.
+    """
+    for c in planilha[planilha.max_row]:
+        if isinstance(c.value, str) and c.value.startswith("="):
+            c.data_type = "s"
+
+
 def gerar(sessao, pasta: Path) -> Path:
     from openpyxl import Workbook
     from openpyxl.styles import Alignment, Font, PatternFill
@@ -49,14 +60,17 @@ def gerar(sessao, pasta: Path) -> Path:
         ws2.append([e.codigo, descricao(e.tipo), e.rotulo, "; ".join(outras), e.total,
                     "sim" if e.ativo else "não", e.origem,
                     "todo o lote" if e.escopo == "*" else Path(e.escopo).name])
+        _como_texto(ws2)
 
     ws3 = wb.create_sheet("Arquivos")
     cabecalho(ws3, ["Arquivo original", "Arquivo anonimizado", "Situação", "Avisos"], [60, 60, 14, 90])
     for a in sessao.arquivos:
         ws3.append([str(a.caminho), str(a.saida or ""), a.status,
                     " | ".join(a.avisos + ([a.erro] if a.erro else []))])
+        _como_texto(ws3)
     for msg in sessao.ignorados:
         ws3.append([msg, "", "ignorado", ""])
+        _como_texto(ws3)
 
     pasta.mkdir(parents=True, exist_ok=True)
     destino = pasta / f"relatorio_anonimizacao_{datetime.now():%Y%m%d_%H%M%S}.xlsx"
