@@ -108,6 +108,10 @@ Os arquivos são gravados na subpasta `anonimizados`, ao lado dos originais, com
 | Texto (.txt, .md, .csv, .srt, .vtt) | Substituição direta, mantendo a codificação do arquivo. |
 | Excel (.xlsx, .xlsm) | Substitui o texto das células, dos comentários, dos links, dos cabeçalhos e rodapés e os textos entre aspas dentro de fórmulas (referências e funções ficam intactas), e limpa o autor. **Remove da cópia** o que guarda dados fora das células: vínculos com outras planilhas (as fórmulas que dependiam deles viram o valor salvo, também anonimizado), o cache das tabelas dinâmicas (a tabela vira valores fixos), objetos incorporados e macros (um .xlsm vira .xlsx). |
 
+**Verificação final.** Depois de gravar cada cópia, o programa procura nela os dados originais que foram substituídos (o nome, o CPF etc. exatamente como estavam). No Word e no Excel a busca passa por todas as partes do arquivo, inclusive as que o programa não trata; no PDF, pela camada de texto e pelos metadados. Se algo sobrou, aparece um aviso de **ATENÇÃO** com o tipo do dado e a parte do arquivo, sem mostrar o dado. O texto dentro de imagens não é conferido de novo.
+
+**Metadados das imagens.** As imagens coladas no Word e no Excel que não recebem tarja são recriadas só a partir dos pixels: saem EXIF (inclusive GPS), XMP, comentários e as tags de autor e descrição do TIFF. Formatos testados: JPEG, PNG e TIFF (o BMP não guarda metadados).
+
 Formatos antigos (.doc, .xls, .rtf, .odt) devem ser salvos antes como .docx ou .xlsx. Apresentações ainda não são suportadas (exporte para PDF).
 
 ## O que é detectado
@@ -196,6 +200,8 @@ anonimizador-cli.exe pasta --relatorio        # gera também o de-para (fora da 
 anonimizador-cli.exe pasta --remover-imagens  # tira as imagens do Word e do Excel em vez de passar OCR
 anonimizador-cli.exe --help
 ```
+
+A linha de comando não tem a tela de revisão: serve para lotes e automação, não como prova de que os documentos estão anonimizados. O código de saída ajuda a automatizar a conferência: **0** quando tudo correu bem, **2** quando algum arquivo deu erro e **3** quando as cópias foram geradas, mas algum arquivo tem aviso de ATENÇÃO (OCR que não leu, imagem que não pôde ser analisada ou dado original encontrado na verificação final). Esses devem ser revistos antes de qualquer envio.
 
 ## Configurações e lista de termos
 

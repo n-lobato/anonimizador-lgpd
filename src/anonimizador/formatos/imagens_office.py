@@ -69,25 +69,37 @@ def analisar(imagens: dict[str, bytes], opcoes: Opcoes) -> Analise:
 
 
 def _sem_metadados(dados: bytes, nome: str) -> bytes | None:
-    """Mesma imagem sem EXIF/XMP/comentários, ou None se não havia o que tirar."""
+    """Mesma imagem sem EXIF/XMP/comentários/tags, ou None se não havia o que tirar.
+
+    A imagem é recriada só a partir dos pixels: regravar o objeto aberto mantinha o
+    comentário e o XMP do JPEG e as tags do TIFF (autor, descrição), como mostrou um teste.
+    """
     from PIL import Image
 
     try:
         with Image.open(io.BytesIO(dados)) as im:
             tem = bool(im.getexif()) or any(k in im.info for k in CHAVES_METADADOS) \
-                or bool(getattr(im, "text", None))
+                or bool(getattr(im, "text", None)) or bool(getattr(im, "tag_v2", None))
             if not tem:
                 return None
             formato = im.format
             params: dict = {}
             if formato == "JPEG":
-                params["quality"] = "keep"  # mesma compressão do original
+                from PIL import JpegImagePlugin
+                params["qtables"] = im.quantization  # mesma compressão do original
+                params["subsampling"] = JpegImagePlugin.get_sampling(im)
             if "icc_profile" in im.info:
                 params["icc_profile"] = im.info["icc_profile"]  # perfil de cor não identifica ninguém
             if "dpi" in im.info:
                 params["dpi"] = im.info["dpi"]
+            im.load()
+            limpa = Image.frombytes(im.mode, im.size, im.tobytes())
+            if im.mode == "P":
+                limpa.putpalette(im.getpalette())
+                if "transparency" in im.info:
+                    params["transparency"] = im.info["transparency"]
             saida = io.BytesIO()
-            im.save(saida, format=formato, **params)
+            limpa.save(saida, format=formato, **params)
             return saida.getvalue()
     except Exception:
         return None

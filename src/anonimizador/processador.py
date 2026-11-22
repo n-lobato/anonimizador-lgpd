@@ -9,6 +9,7 @@ from typing import Callable
 
 from .config import Configuracao, Termos
 from .deteccao.detector import Detector
+from .residuos import procurar as procurar_residuos
 from .formatos import EXTENSOES, NAO_SUPORTADOS, ErroFormato, extensao_saida, modulo_para
 from .registro import Registro, Substituidor
 
@@ -148,6 +149,7 @@ class Sessao:
             try:
                 arq.avisos += mod.anonimizar(str(arq.caminho), str(destino), subst, opcoes, arq.cache)
                 arq.saida, arq.status = destino, "anonimizado"
+                arq.avisos += procurar_residuos(destino, self.registro)
             except ErroFormato as e:
                 arq.erro, arq.status = str(e), "erro"
                 destino.unlink(missing_ok=True)

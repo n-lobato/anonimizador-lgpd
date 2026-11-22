@@ -58,9 +58,10 @@ def _conferir_motor(pasta: str, idioma: str) -> None:
         finally:
             doc.close()
     if not _MOTOR_OK[chave]:
+        dica = ("Mova o programa para uma pasta sem acento no caminho (ex.: C:\\Anonimizador) e tente "
+                "de novo." if not pasta.isascii() else "Reinstale o programa; se continuar, avise o autor.")
         raise ErroFormato(f"o OCR não conseguiu carregar os dados do idioma em \"{pasta}\". Nenhum texto "
-                          "em imagem foi lido. Mova o programa para uma pasta sem acento no caminho e "
-                          "tente de novo.")
+                          f"em imagem foi lido. {dica}")
 
 
 def _textpage_ocr(page, opcoes: Opcoes, completo: bool):

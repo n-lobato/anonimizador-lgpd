@@ -721,3 +721,62 @@ def test_tipo_novo_entra_ligado_e_desmarcado_continua_desmarcado():
     cfg.tipos.remove("NATURALIDADE")  # a pessoa desmarca o tipo novo
     config.salvar_config(cfg)
     assert "NATURALIDADE" not in config.carregar_config().tipos
+
+
+@pytest.mark.parametrize("formato", ["JPEG", "PNG", "TIFF"])
+def test_limpeza_de_metadados_por_formato(formato):
+    """Regravar a imagem aberta mantinha o comentário/XMP do JPEG e as tags do TIFF."""
+    import io
+
+    from PIL import Image, PngImagePlugin, TiffImagePlugin
+
+    from anonimizador.formatos.imagens_office import _sem_metadados
+    xmp = b'<x:xmpmeta xmlns:x="adobe:ns:meta/">Pedro Henrique Alves</x:xmpmeta>'
+    exif = Image.Exif()
+    exif[0x013B] = "Pedro Henrique Alves"  # Artist
+    exif[0x8825] = {1: "S", 2: (15.0, 47.0, 0.0)}  # GPS
+    im = Image.new("RGB", (40, 30), "white")
+    buf = io.BytesIO()
+    if formato == "JPEG":
+        im.save(buf, "JPEG", exif=exif.tobytes(), xmp=xmp, comment=b"Pedro Henrique Alves")
+    elif formato == "PNG":
+        info = PngImagePlugin.PngInfo()
+        info.add_text("Author", "Pedro Henrique Alves")
+        im.save(buf, "PNG", pnginfo=info, exif=exif.tobytes())
+    else:
+        tags = TiffImagePlugin.ImageFileDirectory_v2()
+        tags[270] = "Pedro Henrique Alves"  # ImageDescription
+        tags[700] = xmp
+        im.save(buf, "TIFF", tiffinfo=tags, exif=exif.tobytes())
+    original = buf.getvalue()
+    assert b"Pedro" in original
+    limpo = _sem_metadados(original, "x")
+    assert limpo is not None and b"Pedro" not in limpo
+    with Image.open(io.BytesIO(limpo)) as r:
+        ex = r.getexif()  # no TIFF sobram só as tags estruturais (largura, altura...)
+        assert r.format == formato and r.size == (40, 30)
+        assert 0x013B not in ex and 0x8825 not in ex and 270 not in ex
+
+
+def test_verificacao_final_acha_dado_em_parte_nao_tratada(tmp_path):
+    """Um nome numa parte do Word que o programa não trata (ex.: uma parte fora do padrão) é apontado."""
+    docx = pytest.importorskip("docx")
+    d = docx.Document()
+    d.add_paragraph("Requerente: Pedro Henrique Alves, CPF 529.982.247-25.")
+    base = tmp_path / "base.docx"
+    d.save(base)
+    limpo = tmp_path / "limpo.docx"
+    sujo = tmp_path / "sujo.docx"
+    with zipfile.ZipFile(base) as z:
+        partes = {n: z.read(n) for n in z.namelist()}
+    for destino, extra in ((limpo, None), (sujo, b"<dados><autor>Pedro Henrique Alves</autor></dados>")):
+        with zipfile.ZipFile(destino, "w") as z:
+            for n, dados in partes.items():
+                z.writestr(n, dados)
+            if extra:
+                z.writestr("extra/notas.xml", extra)
+    s = _rodar([limpo, sujo])
+    avisos = {a.caminho.name: " ".join(a.avisos) for a in s.arquivos}
+    assert "verificação final" not in avisos["limpo.docx"]
+    assert "verificação final" in avisos["sujo.docx"] and "extra/notas.xml" in avisos["sujo.docx"]
+    assert "Pedro" not in avisos["sujo.docx"]  # o aviso não repete o dado

@@ -91,7 +91,13 @@ def main(argv: list[str] | None = None) -> int:
         pasta = sessao.pasta_relatorio()
         if pasta:
             print(f"Relatório com os dados originais (não compartilhe): {gerar(sessao, pasta)}")
-    return 2 if erros else 0
+    alertas = sum(1 for a in sessao.arquivos if any(av.startswith("ATENÇÃO") for av in a.avisos))
+    print("\nSem revisão manual: a detecção automática não encontra tudo (veja as limitações no "
+          "README). Confira cada arquivo antes de compartilhar.")
+    if alertas:
+        print(f"{alertas} arquivo(s) com ATENÇÃO nos avisos acima: revise esses primeiro.")
+    # 0: tudo certo; 2: algum arquivo com erro; 3: arquivos gerados, mas com alerta para revisar
+    return 2 if erros else (3 if alertas else 0)
 
 
 if __name__ == "__main__":
