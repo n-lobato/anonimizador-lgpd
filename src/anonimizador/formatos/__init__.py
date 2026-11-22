@@ -27,7 +27,8 @@ class Extraido:
 
 
 def _modulos():
-    from . import docx, imagem, pdf, planilha, texto_simples
+    from . import docx, imagem, limites, pdf, planilha, texto_simples
+    limites.proteger_pillow()
     return {
         ".docx": docx, ".docm": docx,
         ".pdf": pdf,

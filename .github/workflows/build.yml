@@ -238,6 +238,16 @@ jobs:
           TESSDATA_PREFIX: ${{ github.workspace }}/build/tessdata
         run: python -m pytest -v
 
+      # TEMPORÁRIO: medição única de cobertura; sai antes da v1.4.3
+      - name: Cobertura dos testes (medição única)
+        env:
+          QT_QPA_PLATFORM: offscreen
+          TESSDATA_PREFIX: ${{ github.workspace }}/build/tessdata
+        run: |
+          pip install coverage
+          python -m coverage run --source=src/anonimizador -m pytest -q
+          python -m coverage report -m --skip-covered --sort=cover
+
       - name: Medição de acertos (texto e PDF digitalizado)
         env:
           TESSDATA_PREFIX: ${{ github.workspace }}/build/tessdata

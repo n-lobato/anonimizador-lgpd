@@ -8,6 +8,8 @@ CODIFICACOES = ("utf-8-sig", "utf-8", "cp1252", "latin-1")
 
 
 def _ler(caminho: str) -> tuple[str, str]:
+    from .limites import conferir_tamanho_texto
+    conferir_tamanho_texto(caminho)
     with open(caminho, "rb") as fh:
         dados = fh.read()
     for cod in CODIFICACOES:

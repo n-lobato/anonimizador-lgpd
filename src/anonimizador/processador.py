@@ -35,6 +35,46 @@ class Arquivo:
         return str(self.caminho)
 
 
+def _mensagem_erro(e: Exception) -> str:
+    """Erros que não são do próprio programa, em linguagem de quem usa."""
+    from .formatos.limites import explicar_xml
+    tipo = f"{type(e).__module__}.{type(e).__name__}"
+    texto = str(e)
+    if explicar_xml(e):
+        return explicar_xml(e)
+    if "XMLSyntaxError" in tipo or "ParseError" in tipo:
+        return "arquivo corrompido: o conteúdo interno não pôde ser lido."
+    if isinstance(e, MemoryError):
+        return "o arquivo exigiu mais memória do que o computador tem disponível."
+    return f"erro inesperado: {texto}"
+
+
+def _e_atalho(caminho: Path) -> bool:
+    try:
+        return caminho.is_symlink() or (hasattr(os.path, "isjunction") and os.path.isjunction(caminho))
+    except OSError:
+        return True
+
+
+def _varrer(raiz: Path, subpastas: bool):
+    """Arquivos da pasta, sem seguir atalhos (link simbólico ou junção do Windows), que podem
+    apontar para fora dela ou formar laços. Cada atalho encontrado gera um None."""
+    for atual, pastas, nomes in os.walk(raiz, followlinks=False):
+        base = Path(atual)
+        for nome in list(pastas):
+            if _e_atalho(base / nome):
+                pastas.remove(nome)
+                yield None
+        if not subpastas:
+            pastas.clear()
+        for nome in nomes:
+            f = base / nome
+            if _e_atalho(f):
+                yield None
+            elif f.is_file():
+                yield f
+
+
 def listar_arquivos(entradas: list[str | Path], incluir_subpastas: bool = True,
                     sufixo: str = "_anonimizado") -> tuple[list[Arquivo], list[str]]:
     """Expande pastas e filtra extensões. Devolve (arquivos, mensagens de ignorados)."""
@@ -58,12 +98,16 @@ def listar_arquivos(entradas: list[str | Path], incluir_subpastas: bool = True,
     for e in entradas:
         p = Path(e)
         if p.is_dir():
-            padrao = p.rglob("*") if incluir_subpastas else p.glob("*")
-            for f in sorted(padrao):
-                if f.is_file() and PASTA_SAIDA_PADRAO not in f.relative_to(p).parts[:-1] \
+            itens = list(_varrer(p, incluir_subpastas))
+            atalhos = itens.count(None)
+            for f in sorted(f for f in itens if f is not None):
+                if PASTA_SAIDA_PADRAO not in f.relative_to(p).parts[:-1] \
                         and PASTA_RELATORIO not in f.relative_to(p).parts[:-1] \
                         and not any(parte.startswith(".") for parte in f.relative_to(p).parts):
                     adicionar(f, p)
+            if atalhos:
+                ignorados.append(f"{p.name}: {atalhos} atalho(s) para outros lugares (links simbólicos ou "
+                                 "junções) não foram seguidos; adicione esses arquivos diretamente, se quiser.")
         elif p.is_file():
             adicionar(p, None)
         else:
@@ -126,7 +170,7 @@ class Sessao:
             except ErroFormato as e:
                 arq.erro, arq.status = str(e), "erro"
             except Exception as e:  # nunca derrubar o lote inteiro por um arquivo
-                arq.erro, arq.status = f"erro inesperado: {e}", "erro"
+                arq.erro, arq.status = _mensagem_erro(e), "erro"
         self.registro.consolidar_nomes(self.textos)
         self.registro.recontar(self.textos)
         self.registro.descartar_sem_ocorrencias()
@@ -154,7 +198,7 @@ class Sessao:
                 arq.erro, arq.status = str(e), "erro"
                 destino.unlink(missing_ok=True)
             except Exception as e:
-                arq.erro, arq.status = f"erro inesperado: {e}", "erro"
+                arq.erro, arq.status = _mensagem_erro(e), "erro"
                 destino.unlink(missing_ok=True)
             arq.cache = None
         if progresso:

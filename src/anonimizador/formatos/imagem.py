@@ -47,6 +47,8 @@ def _ampliada(caminho: str) -> bytes | None:
 
 
 def _como_pdf(caminho: str):
+    from .limites import conferir_imagem
+    conferir_imagem(caminho)  # antes de decodificar: recusa dimensões absurdas
     f = fitz()
     try:
         ampliada = _ampliada(caminho)

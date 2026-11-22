@@ -26,11 +26,14 @@ CABECALHOS = ("oddHeader", "oddFooter", "evenHeader", "evenFooter", "firstHeader
 def _abrir(caminho: str, valores: bool = False):
     """Abre sem macros e sem vínculos externos; com valores=True, traz os valores salvos
     no lugar das fórmulas (usado para as fórmulas que dependiam de vínculos)."""
+    from .limites import conferir_zip
+    conferir_zip(caminho)
     try:
         import openpyxl
         return openpyxl.load_workbook(caminho, keep_vba=False, keep_links=False, data_only=valores)
     except Exception as e:
-        raise ErroFormato(f"não foi possível abrir a planilha ({e}).") from e
+        from .limites import explicar_xml
+        raise ErroFormato(explicar_xml(e) or f"não foi possível abrir a planilha ({e}).") from e
 
 
 def _estrutura(caminho: str) -> dict[str, bool]:

@@ -52,6 +52,13 @@ def analisar(imagens: dict[str, bytes], opcoes: Opcoes) -> Analise:
             if not opcoes.ocr:
                 r.sem_ocr.append(nome)
                 continue
+            try:
+                from .limites import conferir_imagem
+                conferir_imagem(dados)
+            except Exception as e:
+                r.falhas.append(nome)
+                r.mensagens.append(str(e))
+                continue
             arq = Path(pasta) / f"{i}{Path(nome).suffix.lower()}"
             arq.write_bytes(dados)
             try:

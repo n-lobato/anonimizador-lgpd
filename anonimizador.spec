@@ -30,7 +30,10 @@ a = Analysis(
     datas=datas,
     hiddenimports=["anonimizador.formatos.docx", "anonimizador.formatos.pdf",
                    "anonimizador.formatos.imagem", "anonimizador.formatos.planilha",
-                   "anonimizador.formatos.texto_simples", "anonimizador.gui.janela"],
+                   "anonimizador.formatos.texto_simples", "anonimizador.formatos.limites",
+                   "anonimizador.formatos.imagens_office", "anonimizador.gui.janela",
+                   # o openpyxl só usa o defusedxml (proteção contra XML malicioso) se ele estiver no pacote
+                   "defusedxml", "defusedxml.ElementTree"],
     excludes=excluir,
     noarchive=False,
 )

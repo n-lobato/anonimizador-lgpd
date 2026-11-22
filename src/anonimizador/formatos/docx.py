@@ -115,6 +115,8 @@ def aplicar_trechos(itens, trechos) -> bool:
 
 
 def _ler_pacote(caminho: str) -> zipfile.ZipFile:
+    from .limites import conferir_zip
+    conferir_zip(caminho)
     try:
         return zipfile.ZipFile(caminho)
     except zipfile.BadZipFile as e:
