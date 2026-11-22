@@ -136,3 +136,14 @@ def test_naturalidade_so_com_rotulo():
     assert nat("natural de São José dos Campos - SP, residente") == ["São José dos Campos - SP"]
     assert nat("o requerente é natural da cidade, onde reside") == []
     assert nat("Mora em Belém/PA desde 2010.") == []  # sem o rótulo, cidade não é tarjada
+
+
+def test_validadores_recusam_tamanho_errado_e_repeticao():
+    from anonimizador.deteccao import validadores as v
+    assert not v.cnpj_valido("11.111.111/1111-11")
+    assert not v.cnpj_valido("12.345.678/0001")
+    assert not v.pis_valido("111.11111.11-1")
+    assert not v.pis_valido("123.4567.89")
+    assert not v.luhn_valido("4111 1111 1111")  # 12 dígitos: curto demais para cartão
+    assert not v.processo_cnj_valido("0701234-93.2026.8.07.001")  # 19 dígitos
+    assert v.processo_cnj_valido("0701234-93.2026.8.07.0001")

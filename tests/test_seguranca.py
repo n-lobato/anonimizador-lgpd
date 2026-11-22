@@ -185,3 +185,39 @@ def test_pasta_nao_segue_atalho_para_fora(tmp_path):
     arquivos, ignorados = listar_arquivos([pasta])
     assert [a.caminho.name for a in arquivos] == ["dentro.txt"]
     assert any("2 atalho(s)" in m for m in ignorados)
+
+
+# ------------------------------------------------------------ falha no meio da gravação
+@pytest.mark.parametrize("erro", ["formato", "inesperado"])
+def test_falha_no_meio_nao_deixa_copia_pela_metade(tmp_path, monkeypatch, erro):
+    """Se a gravação quebra depois de começar, a cópia parcial (que ainda pode ter dados
+    originais) é apagada, e não fica na pasta que o usuário vai enviar."""
+    from anonimizador.formatos import ErroFormato, texto_simples
+
+    def quebra(caminho, saida, substituidor, opcoes, cache=None):
+        Path(saida).write_text(FRASE, encoding="utf-8")  # começou a gravar o original
+        raise ErroFormato("falhou") if erro == "formato" else RuntimeError("falhou")
+
+    monkeypatch.setattr(texto_simples, "anonimizar", quebra)
+    f = _texto_ok(tmp_path)
+    r = _rodar([f])
+    assert r[f.name].erro and r[f.name].saida is None
+    saida = tmp_path / "anonimizados"
+    assert not saida.exists() or not any(saida.iterdir())
+
+
+@pytest.mark.skipif(os.name != "nt", reason="só o Windows tem o problema de acento no caminho do OCR")
+def test_ocr_copia_dados_quando_nao_ha_nome_curto(tmp_path, monkeypatch):
+    """Com os nomes curtos desligados no disco, os dados de idioma vão para uma pasta sem acento."""
+    from anonimizador.formatos import ocr
+    origem = tmp_path / "Área de Trabalho" / "tessdata"
+    origem.mkdir(parents=True)
+    (origem / "por.traineddata").write_bytes(b"dados")
+    destino_base = tmp_path / "programdata"
+    monkeypatch.setattr(ocr, "_nome_curto", lambda caminho: None)
+    monkeypatch.setattr(ocr, "_SEGUROS", {})
+    monkeypatch.setenv("PROGRAMDATA", str(destino_base))
+    seguro = ocr.caminho_seguro(str(origem))
+    if not seguro.isascii():
+        pytest.skip("a pasta temporária deste computador já tem acento")
+    assert (Path(seguro) / "por.traineddata").read_bytes() == b"dados"

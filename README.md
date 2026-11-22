@@ -112,6 +112,8 @@ Os arquivos são gravados na subpasta `anonimizados`, ao lado dos originais, com
 
 **Metadados das imagens.** As imagens coladas no Word e no Excel que não recebem tarja são recriadas só a partir dos pixels: saem EXIF (inclusive GPS), XMP, comentários e as tags de autor e descrição do TIFF. Formatos testados: JPEG, PNG e TIFF (o BMP não guarda metadados).
 
+**Arquivos danificados ou montados para travar o programa.** Documentos de terceiros podem chegar corrompidos ou ter sido preparados de propósito para esgotar a memória do computador (um .docx de poucos KB que vira gigabytes ao ser aberto, uma imagem que declara dimensões gigantescas, um XML com expansões em cascata). Desde a versão 1.4.3 o programa confere o tamanho e as dimensões antes de abrir e recusa o que for anormal, com uma mensagem clara, e segue com os outros arquivos do lote. Os limites ficam muito acima de documentos reais: 1 GB descompactado por arquivo do Office, 150 milhões de pixels por imagem (uma folha A4 a 600 dpi tem 35 milhões), 10.000 páginas por PDF e 300 MB por arquivo de texto. Ao varrer uma pasta, atalhos que apontam para outros lugares (links simbólicos e junções do Windows) não são seguidos: o programa avisa quantos encontrou, e você pode adicionar esses arquivos diretamente.
+
 Formatos antigos (.doc, .xls, .rtf, .odt) devem ser salvos antes como .docx ou .xlsx. Apresentações ainda não são suportadas (exporte para PDF).
 
 ## O que é detectado
@@ -201,7 +203,7 @@ anonimizador-cli.exe pasta --remover-imagens  # tira as imagens do Word e do Exc
 anonimizador-cli.exe --help
 ```
 
-A linha de comando não tem a tela de revisão: serve para lotes e automação, não como prova de que os documentos estão anonimizados. O código de saída ajuda a automatizar a conferência: **0** quando tudo correu bem, **2** quando algum arquivo deu erro e **3** quando as cópias foram geradas, mas algum arquivo tem aviso de ATENÇÃO (OCR que não leu, imagem que não pôde ser analisada ou dado original encontrado na verificação final). Esses devem ser revistos antes de qualquer envio.
+A linha de comando não tem a tela de revisão: serve para lotes e automação, não como prova de que os documentos estão anonimizados. O código de saída ajuda a automatizar a conferência: **0** quando tudo correu bem, **1** quando não havia nenhum arquivo suportado, **2** quando algum arquivo deu erro e **3** quando as cópias foram geradas, mas algum arquivo tem aviso de ATENÇÃO (OCR que não leu, imagem que não pôde ser analisada ou dado original encontrado na verificação final). Esses devem ser revistos antes de qualquer envio.
 
 ## Configurações e lista de termos
 
@@ -242,7 +244,8 @@ Para publicar uma versão, rode o workflow manualmente com a opção "Publicar" 
 ```
 src/anonimizador/
   deteccao/     padrões, validadores e reconhecimento de nomes
-  formatos/     leitura e gravação de docx, pdf, imagens, texto e xlsx
+  formatos/     leitura e gravação de docx, pdf, imagens, texto e xlsx;
+                limites.py recusa arquivos montados para travar o programa
   gui/          janela, tela de revisão e diálogos (PySide6)
   registro.py   códigos e variantes de cada pessoa ou dado
   processador.py  fluxo listar > analisar > revisar > gravar
