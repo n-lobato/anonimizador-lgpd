@@ -18,6 +18,15 @@ saida.mkdir(parents=True, exist_ok=True)
 app = QApplication(sys.argv[:1])
 app.setStyle("Fusion")
 j = JanelaPrincipal([])
+j.show()
+for _ in range(5):
+    app.processEvents()
+livre = j.screen().availableGeometry()
+moldura = j.frameGeometry()
+print(f"inicial: área livre da tela {livre.width()}x{livre.height()} em ({livre.x()},{livre.y()}); "
+      f"janela com moldura {moldura.width()}x{moldura.height()} em ({moldura.x()},{moldura.y()}); "
+      f"cabe: {livre.contains(moldura)}")
+j.grab().save(str(saida / "janela_inicial.png"))
 for largura, altura in ((820, 720), (1366, 705), (1366, 600), (1920, 1000)):
     j.resize(largura, altura)
     j.show()

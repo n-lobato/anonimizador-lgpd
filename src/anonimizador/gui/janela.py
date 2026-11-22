@@ -121,7 +121,7 @@ class JanelaPrincipal(QMainWindow):
         self.trabalho: Trabalho | None = None
         self.sessao: Sessao | None = None
         self.setWindowTitle(f"{NOME_APP} {__version__}")
-        self.resize(820, 720)
+        self._ajustar_a_tela()
         self.setAcceptDrops(True)
         icone = pasta_do_programa() / "assets" / "icone.ico"
         if icone.exists():
@@ -174,6 +174,19 @@ class JanelaPrincipal(QMainWindow):
         a.setMenuRole(QAction.MenuRole.AboutRole)
         a.triggered.connect(self._sobre)
         aj.addAction(a)
+
+    def _ajustar_a_tela(self) -> None:
+        """Tamanho inicial que cabe na área livre da tela (sem a barra de tarefas).
+
+        Com 820x720 fixos, num notebook 1366x768 a janela passava por baixo da barra de
+        tarefas, porque sobram cerca de 720 px e ainda há a barra de título."""
+        tela = (self.screen() or QApplication.primaryScreen()).availableGeometry()
+        margem_titulo = 40  # barra de título e bordas, que não entram no resize()
+        largura = min(820, tela.width() - 20)
+        altura = min(720, tela.height() - margem_titulo)
+        self.resize(largura, altura)
+        self.move(tela.x() + (tela.width() - largura) // 2,
+                  tela.y() + max(0, (tela.height() - altura - margem_titulo) // 2))
 
     def _montar_tela(self) -> None:
         central = QWidget()
