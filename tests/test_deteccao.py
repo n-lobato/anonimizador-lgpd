@@ -109,7 +109,8 @@ def test_campos_da_identidade_militar():
     """Rótulos como saem da identidade militar lida pelo OCR: sem "de" e com o valor na linha de baixo."""
     d = Detector(set(TIPOS))
     achados = {(a.tipo, a.texto) for a in d.detectar(
-        "DATA NASCIMENTO\n01/02/1970\nFUSEX\n123456789 01", juntar_linhas=True)}
+        "NR REGISTRO\n0123456789\nDATA NASCIMENTO\n01/02/1970\nFUSEX\n123456789 01", juntar_linhas=True)}
+    assert ("RG", "0123456789") in achados
     assert ("DATA_NASCIMENTO", "01/02/1970") in achados
     assert ("MATRICULA", "123456789 01") in achados
 

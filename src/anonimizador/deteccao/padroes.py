@@ -31,7 +31,8 @@ CNPJ_SIMPLES = re.compile(r"(?<![\w.\-/])[0-9A-Z]{12}\d{2}(?![\w])")
 
 RG = re.compile(
     r"(?<!\w)(?:RG|R\.\s?G\.|C\.\s?I\.|c[ée]dula\s+de\s+identidade|carteira\s+de\s+identidade"
-    r"|identidade(?:\s+militar|\s+civil|\s+funcional|\s+profissional)?|registro\s+geral)"
+    r"|identidade(?:\s+militar|\s+civil|\s+funcional|\s+profissional)?|registro\s+geral"
+    r"|nr\.?\s+registro)"  # "NR REGISTRO": número da identidade militar
     r"(?![a-zà-ú])[^\d\n]{0,20}?"
     r"(?P<v>\d[\d.]{3,13}\d(?:\s?-\s?[\dXx])?"
     r"(?:\s*[-–/]?\s*(?:SSP|SESP|SDS|SPTC|DETRAN|DGPC|SSPDS|IFP|IIRGD|SEJUSP|PCDF|SJS|IGP|SJTC"
