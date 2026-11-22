@@ -7,7 +7,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from PySide6.QtCore import QEvent, QObject, Qt
+from PySide6.QtCore import QEvent, QObject, QSize, Qt
 from PySide6.QtGui import QAction, QIcon
 from PySide6.QtWidgets import (QAbstractItemView, QApplication, QButtonGroup, QCheckBox, QDialog,
                                QFileDialog, QFrame, QGridLayout, QGroupBox, QHBoxLayout, QLabel, QLineEdit,
@@ -62,6 +62,21 @@ def executando_elevado() -> bool:
 AVISO_ELEVADO = ("O programa foi aberto como administrador. Nesse modo o Windows bloqueia "
                  "arrastar arquivos do Explorer para a janela. Use os botões \"Adicionar\" "
                  "ou feche o programa e abra de novo pelo menu Iniciar.")
+
+
+class _ListaCompacta(QListWidget):
+    """Lista com altura preferida pequena: o espaço que sobra vai para ela pelo stretch.
+
+    Com a área de rolagem, o Qt usa a altura PREFERIDA de cada item (a da lista padrão é
+    192 px) e, numa tela de notebook, o botão Anonimizar ia para fora da área visível."""
+
+    def sizeHint(self) -> QSize:
+        return QSize(400, 90)
+
+
+class _RegistroCompacto(QPlainTextEdit):
+    def sizeHint(self) -> QSize:
+        return QSize(400, 70)
 
 
 class ZonaSoltar(QFrame):
@@ -168,7 +183,7 @@ class JanelaPrincipal(QMainWindow):
         self.zona = ZonaSoltar(self._escolher_arquivos)
         lay.addWidget(self.zona)
 
-        self.lista = QListWidget()
+        self.lista = _ListaCompacta()
         self.lista.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
         self.lista.setMinimumHeight(80)
         lay.addWidget(QLabel("Itens a processar:"))
@@ -244,7 +259,7 @@ class JanelaPrincipal(QMainWindow):
         self.botao.clicked.connect(self.iniciar)
         self.progresso = QProgressBar()
         self.progresso.setTextVisible(True)
-        self.log = QPlainTextEdit()
+        self.log = _RegistroCompacto()
         self.log.setReadOnly(True)
         self.log.setMinimumHeight(60)
         self.log.setMaximumHeight(140)
