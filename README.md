@@ -100,12 +100,12 @@ Os arquivos são gravados na subpasta `anonimizados`, ao lado dos originais, com
 
 | Formato | O que é feito |
 |---|---|
-| Word (.docx) | Substitui o texto mantendo a formatação. Alcança corpo, tabelas, caixas de texto, cabeçalhos, rodapés, notas, comentários e alterações controladas. Limpa autor, empresa e autores de comentários e revisões. |
+| Word (.docx, .docm) | Substitui o texto mantendo a formatação. Alcança corpo, tabelas, caixas de texto, cabeçalhos, rodapés, notas, comentários, alterações controladas e os textos de gráficos e SmartArt. Limpa autor, empresa e autores de comentários e revisões. **Remove da cópia** os objetos incorporados (planilhas, PDFs e outros arquivos colados no documento), junto com as miniaturas deles, deixando no texto "[objeto incorporado removido]". Remove as macros: um .docm vira .docx. |
 | PDF com texto | Tarja definitiva: o texto sob a tarja é **apagado do arquivo**, não apenas coberto. O código é escrito sobre a tarja. Remove metadados, anexos, links e valores de formulários. |
 | PDF digitalizado | OCR em português e tarja nos pixels da imagem. |
 | Imagens (.png, .jpg, .tif, .bmp) | OCR e tarja; a saída é uma imagem do mesmo tipo, sem os metadados EXIF. |
 | Texto (.txt, .md, .csv, .srt, .vtt) | Substituição direta, mantendo a codificação do arquivo. |
-| Excel (.xlsx) | Substitui o texto das células, dos comentários, dos links, dos cabeçalhos e rodapés e os textos entre aspas dentro de fórmulas (referências e funções ficam intactas), e limpa o autor. Avisa quando há tabelas dinâmicas ou vínculos com outros arquivos, cujos dados guardados não são analisados. |
+| Excel (.xlsx, .xlsm) | Substitui o texto das células, dos comentários, dos links, dos cabeçalhos e rodapés e os textos entre aspas dentro de fórmulas (referências e funções ficam intactas), e limpa o autor. **Remove da cópia** o que guarda dados fora das células: vínculos com outras planilhas (as fórmulas que dependiam deles viram o valor salvo, também anonimizado), o cache das tabelas dinâmicas (a tabela vira valores fixos), objetos incorporados e macros (um .xlsm vira .xlsx). |
 
 Formatos antigos (.doc, .xls, .rtf, .odt) devem ser salvos antes como .docx ou .xlsx. Apresentações ainda não são suportadas (exporte para PDF).
 
@@ -168,7 +168,7 @@ Se o [spaCy](https://spacy.io) com um modelo em português estiver instalado (ve
 
 - **Nenhuma detecção automática de nomes é perfeita.** Na medição acima, cerca de 1 em cada 10 nomes passou. Nomes raros, apelidos, prenomes soltos e nomes escritos em minúsculas são os que mais escapam, e algumas palavras podem ser marcadas por engano. Por isso a revisão vem ligada por padrão. Confira o resultado antes de compartilhar.
 - Nomes de rua sem número ("Avenida Pau-Brasil") são tratados como endereço, mesmo quando são só referência de lugar. Desmarque na revisão quando não for o caso.
-- Texto dentro de imagens incorporadas no Word (assinaturas, carimbos, prints) não é analisado. O programa avisa quando o documento tem imagens.
+- Texto dentro de imagens coladas no Word ou no Excel (fotos de documentos, assinaturas, carimbos, prints) não é analisado. O programa avisa quando o documento tem imagens.
 - No PDF, quando o nome é curto e o código não cabe na tarja, ela fica só preta. A correspondência continua no relatório.
 - O OCR depende da qualidade da digitalização. Documentos tortos, manuscritos ou de baixa resolução podem ter falhas. Em escaneados, confira com atenção e-mails e dados dentro de tabelas: o OCR costuma ler o "@" errado.
 - Cópias de planilhas podem perder gráficos e imagens (limitação da biblioteca openpyxl).

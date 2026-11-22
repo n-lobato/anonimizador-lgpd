@@ -52,5 +52,13 @@ NAO_SUPORTADOS = {
 }
 
 
+# a cópia sai sem macros; o Word e o Excel recusam .docm/.xlsm sem macros
+EXTENSAO_SAIDA = {".docm": ".docx", ".xlsm": ".xlsx"}
+
+
+def extensao_saida(extensao: str) -> str:
+    return EXTENSAO_SAIDA.get(extensao.lower(), extensao)
+
+
 def modulo_para(extensao: str):
     return _modulos().get(extensao.lower())

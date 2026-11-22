@@ -9,7 +9,7 @@ from typing import Callable
 
 from .config import Configuracao, Termos
 from .deteccao.detector import Detector
-from .formatos import EXTENSOES, NAO_SUPORTADOS, ErroFormato, modulo_para
+from .formatos import EXTENSOES, NAO_SUPORTADOS, ErroFormato, extensao_saida, modulo_para
 from .registro import Registro, Substituidor
 
 PASTA_RELATORIO = "Relatório de-para (NÃO COMPARTILHAR)"
@@ -71,7 +71,8 @@ def listar_arquivos(entradas: list[str | Path], incluir_subpastas: bool = True,
 
 
 def caminho_saida(arq: Arquivo, cfg: Configuracao) -> Path:
-    nome = f"{arq.caminho.stem}{cfg.sufixo}{arq.caminho.suffix}"
+    ext = extensao_saida(arq.caminho.suffix)
+    nome = f"{arq.caminho.stem}{cfg.sufixo}{ext}"
     if cfg.pasta_saida:
         base = Path(cfg.pasta_saida)
         if arq.raiz is not None:
@@ -83,7 +84,7 @@ def caminho_saida(arq: Arquivo, cfg: Configuracao) -> Path:
     destino = base / nome
     n = 2
     while destino.exists():
-        destino = base / f"{arq.caminho.stem}{cfg.sufixo} ({n}){arq.caminho.suffix}"
+        destino = base / f"{arq.caminho.stem}{cfg.sufixo} ({n}){ext}"
         n += 1
     return destino
 

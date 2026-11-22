@@ -58,6 +58,99 @@ def test_docx_runs_cabecalho_tabela_e_metadados(tmp_path):
     assert b"529.982.247-25" not in tudo and "Kauã".encode() not in tudo
 
 
+def _docx_com_objeto_e_macro(tmp_path, macro: bool):
+    """Monta um Word com uma planilha incorporada (e miniatura), um gráfico ligado a uma
+    planilha de dados e, se pedido, macros, como o Word faz."""
+    docx = pytest.importorskip("docx")
+    d = docx.Document()
+    d.add_paragraph("Requerente: Pedro Henrique Alves, CPF 529.982.247-25.")
+    base = tmp_path / "base.docx"
+    d.save(base)
+    with zipfile.ZipFile(base) as z:
+        partes = {n: z.read(n) for n in z.namelist()}
+    objeto = (
+        '<w:p><w:r><w:object w:dxaOrig="1440" w:dyaOrig="1440">'
+        '<v:shape id="_x0000_i1025" type="#_x0000_t75" style="width:72pt;height:72pt">'
+        '<v:imagedata r:id="rIdPrev" o:title=""/></v:shape>'
+        '<o:OLEObject Type="Embed" ProgID="Excel.Sheet.12" ShapeID="_x0000_i1025" '
+        'DrawAspect="Content" ObjectID="_1" r:id="rIdOle"/></w:object></w:r></w:p>')
+    doc = partes["word/document.xml"].decode()
+    doc = doc.replace("<w:sectPr", objeto + "<w:sectPr", 1)
+    for prefixo, ns in (("v", "urn:schemas-microsoft-com:vml"), ("o", "urn:schemas-microsoft-com:office:office")):
+        if f"xmlns:{prefixo}=" not in doc:
+            doc = doc.replace("<w:document ", f'<w:document xmlns:{prefixo}="{ns}" ', 1)
+    partes["word/document.xml"] = doc.encode()
+    rels = partes["word/_rels/document.xml.rels"].decode()
+    extra = ('<Relationship Id="rIdPrev" Type="http://schemas.openxmlformats.org/officeDocument/2006/'
+             'relationships/image" Target="media/image9.emf"/>'
+             '<Relationship Id="rIdOle" Type="http://schemas.openxmlformats.org/officeDocument/2006/'
+             'relationships/oleObject" Target="embeddings/Microsoft_Excel_Worksheet.xlsx"/>'
+             '<Relationship Id="rIdChart" Type="http://schemas.openxmlformats.org/officeDocument/2006/'
+             'relationships/chart" Target="charts/chart1.xml"/>')
+    if macro:
+        extra += ('<Relationship Id="rIdVba" Type="http://schemas.microsoft.com/office/2006/relationships/'
+                  'vbaProject" Target="vbaProject.bin"/>')
+    partes["word/_rels/document.xml.rels"] = rels.replace("</Relationships>", extra + "</Relationships>").encode()
+    partes["word/media/image9.emf"] = b"miniatura com o CPF 529.982.247-25"
+    partes["word/embeddings/Microsoft_Excel_Worksheet.xlsx"] = b"Pedro Henrique Alves 529.982.247-25"
+    partes["word/embeddings/Dados_do_grafico.xlsx"] = b"Pedro Henrique Alves 529.982.247-25"
+    partes["word/charts/chart1.xml"] = (
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+        '<c:chartSpace xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" '
+        'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'
+        '<c:chart><c:plotArea><c:barChart><c:ser><c:cat><c:strRef><c:strCache><c:pt idx="0">'
+        '<c:v>Pedro Henrique Alves</c:v></c:pt></c:strCache></c:strRef></c:cat></c:ser></c:barChart>'
+        '</c:plotArea></c:chart><c:externalData r:id="rId1"/></c:chartSpace>').encode()
+    partes["word/charts/_rels/chart1.xml.rels"] = (
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+        '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+        '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/'
+        'package" Target="../embeddings/Dados_do_grafico.xlsx"/></Relationships>').encode()
+    ct = partes["[Content_Types].xml"].decode()
+    ct_extra = ('<Default Extension="emf" ContentType="image/x-emf"/>'
+                '<Override PartName="/word/embeddings/Microsoft_Excel_Worksheet.xlsx" ContentType="application/'
+                'vnd.openxmlformats-officedocument.spreadsheetml.sheet"/>'
+                '<Override PartName="/word/charts/chart1.xml" ContentType="application/'
+                'vnd.openxmlformats-officedocument.drawingml.chart+xml"/>')
+    if macro:
+        partes["word/vbaProject.bin"] = b"Sub Teste() ' Pedro Henrique Alves"
+        ct_extra += '<Default Extension="bin" ContentType="application/vnd.ms-office.vbaProject"/>'
+        ct = ct.replace("wordprocessingml.document.main+xml", "ms-word.document.macroEnabled.main+xml")
+    partes["[Content_Types].xml"] = ct.replace("</Types>", ct_extra + "</Types>").encode()
+    f = tmp_path / ("caso.docm" if macro else "caso.docx")
+    with zipfile.ZipFile(f, "w", zipfile.ZIP_DEFLATED) as z:
+        for n, dados in partes.items():
+            z.writestr(n, dados)
+    return f
+
+
+@pytest.mark.parametrize("macro", [False, True])
+def test_docx_remove_objetos_incorporados_e_macros(tmp_path, macro):
+    docx = pytest.importorskip("docx")
+    f = _docx_com_objeto_e_macro(tmp_path, macro)
+    s = _rodar([f])
+    a = s.arquivos[0]
+    assert not a.erro and a.saida.suffix == ".docx"
+    with zipfile.ZipFile(a.saida) as z:
+        nomes = z.namelist()
+        tudo = b"".join(z.read(n) for n in nomes)
+        ct = z.read("[Content_Types].xml").decode()
+        rels = z.read("word/_rels/document.xml.rels").decode()
+        grafico = z.read("word/charts/chart1.xml").decode()
+    assert not any(n.startswith("word/embeddings/") for n in nomes)
+    assert "word/media/image9.emf" not in nomes  # miniatura do objeto
+    assert "word/vbaProject.bin" not in nomes
+    assert b"529.982.247-25" not in tudo and b"Pedro" not in tudo
+    assert "rIdOle" not in rels and "rIdPrev" not in rels and "vbaProject" not in rels
+    assert "macroEnabled" not in ct and "embeddings" not in ct and 'Extension="bin"' not in ct
+    assert "externalData" not in grafico and "[PESSOA_1]" in grafico
+    out = docx.Document(a.saida)  # o arquivo continua abrindo
+    textos = [p.text for p in out.paragraphs]
+    assert "Requerente: [PESSOA_1], CPF [CPF_1]." in textos
+    assert any("[objeto incorporado removido]" in t for t in textos)
+    assert any("REMOVIDO" in av or "removido" in av for av in a.avisos)
+
+
 def test_xlsx(tmp_path):
     from openpyxl import Workbook, load_workbook
     wb = Workbook()
@@ -96,6 +189,88 @@ def test_xlsx_formulas_links_e_cabecalho(tmp_path):
     assert ws2["A4"].value == "=SUM(1,2)"
     assert "lucas" not in ws2["A3"].hyperlink.target.lower()
     assert "Lucas" not in ws2.oddHeader.center.text
+
+
+def _xlsx_com_vinculo_dinamica_e_macro(tmp_path, macro: bool):
+    """Planilha com uma fórmula ligada a outra pasta de trabalho, uma tabela dinâmica com
+    cache, um objeto incorporado e, se pedido, macros, como o Excel grava."""
+    from openpyxl import Workbook
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Plan1"
+    ws["A1"] = "Nome"
+    ws["A2"] = "Valor"
+    ws["B2"] = 10
+    base = tmp_path / "base.xlsx"
+    wb.save(base)
+    with zipfile.ZipFile(base) as z:
+        partes = {n: z.read(n) for n in z.namelist()}
+    r = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
+    folha = partes["xl/worksheets/sheet1.xml"].decode()
+    folha = folha.replace("</sheetData>",
+                          '<row r="5"><c r="A5" t="str"><f>[1]Cadastro!A1</f><v>Pedro Henrique Alves</v></c>'
+                          '</row></sheetData>', 1)
+    partes["xl/worksheets/sheet1.xml"] = folha.encode()
+    partes["xl/externalLinks/externalLink1.xml"] = (
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+        f'<externalLink xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="{r}">'
+        '<externalBook r:id="rId1"><sheetNames><sheetName val="Cadastro"/></sheetNames><sheetDataSet>'
+        '<sheetData sheetId="0"><row r="1"><cell r="A1" t="str"><v>Pedro Henrique Alves</v></cell>'
+        '<cell r="B1" t="str"><v>529.982.247-25</v></cell></row></sheetData></sheetDataSet>'
+        '</externalBook></externalLink>').encode()
+    partes["xl/externalLinks/_rels/externalLink1.xml.rels"] = (
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+        '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+        f'<Relationship Id="rId1" Type="{r}/externalLinkPath" '
+        'Target="file:///C:/Users/pedro.alves/cadastro.xlsx" TargetMode="External"/></Relationships>').encode()
+    partes["xl/pivotCache/pivotCacheRecords1.xml"] = b"<pivotCacheRecords>Pedro Henrique Alves</pivotCacheRecords>"
+    partes["xl/embeddings/oleObject1.bin"] = b"Pedro Henrique Alves 529.982.247-25"
+    livro = partes["xl/workbook.xml"].decode()
+    if "xmlns:r=" not in livro.split(">", 1)[0]:  # o openpyxl declara o "r" só em cada <sheet>
+        livro = livro.replace("<workbook ", f'<workbook xmlns:r="{r}" ', 1)
+    livro = livro.replace("</sheets>", '</sheets><externalReferences><externalReference r:id="rIdExt"/>'
+                          "</externalReferences>", 1)
+    partes["xl/workbook.xml"] = livro.encode()
+    rels = partes["xl/_rels/workbook.xml.rels"].decode()
+    extra = f'<Relationship Id="rIdExt" Type="{r}/externalLink" Target="externalLinks/externalLink1.xml"/>'
+    if macro:
+        extra += ('<Relationship Id="rIdVba" Type="http://schemas.microsoft.com/office/2006/relationships/'
+                  'vbaProject" Target="vbaProject.bin"/>')
+    partes["xl/_rels/workbook.xml.rels"] = rels.replace("</Relationships>", extra + "</Relationships>").encode()
+    ct = partes["[Content_Types].xml"].decode()
+    ct_extra = ('<Override PartName="/xl/externalLinks/externalLink1.xml" ContentType="application/'
+                'vnd.openxmlformats-officedocument.spreadsheetml.externalLink+xml"/>')
+    if macro:
+        partes["xl/vbaProject.bin"] = b"Sub Teste() ' Pedro Henrique Alves"
+        ct_extra += '<Default Extension="bin" ContentType="application/vnd.ms-office.vbaProject"/>'
+        ct = ct.replace("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml",
+                        "application/vnd.ms-excel.sheet.macroEnabled.main+xml")
+    partes["[Content_Types].xml"] = ct.replace("</Types>", ct_extra + "</Types>").encode()
+    f = tmp_path / ("cadastro.xlsm" if macro else "cadastro.xlsx")
+    with zipfile.ZipFile(f, "w", zipfile.ZIP_DEFLATED) as z:
+        for n, dados in partes.items():
+            z.writestr(n, dados)
+    return f
+
+
+@pytest.mark.parametrize("macro", [False, True])
+def test_xlsx_remove_vinculos_caches_objetos_e_macros(tmp_path, macro):
+    from openpyxl import load_workbook
+    f = _xlsx_com_vinculo_dinamica_e_macro(tmp_path, macro)
+    s = _rodar([f])
+    a = s.arquivos[0]
+    assert not a.erro and a.saida.suffix == ".xlsx"
+    with zipfile.ZipFile(a.saida) as z:
+        nomes = z.namelist()
+        tudo = b"".join(z.read(n) for n in nomes)
+    assert not any(n.startswith(("xl/externalLinks/", "xl/pivotCache/", "xl/embeddings/")) for n in nomes)
+    assert "xl/vbaProject.bin" not in nomes
+    assert b"Pedro" not in tudo and b"529.982" not in tudo and b"pedro.alves" not in tudo
+    assert b"macroEnabled" not in tudo
+    ws = load_workbook(a.saida).active
+    assert ws["A5"].value == "[PESSOA_1]"  # a fórmula ligada à outra planilha virou o valor, anonimizado
+    assert ws["B2"].value == 10
+    assert any("valor salvo" in av for av in a.avisos)
 
 
 def test_formula_aspas_escapadas():

@@ -4,11 +4,15 @@ Trabalha direto no XML do pacote, para alcançar corpo, tabelas, caixas de
 texto, cabeçalhos, rodapés, notas, comentários e alterações controladas.
 Um nome pode estar dividido em vários "runs" com formatações diferentes; o
 código é escrito no primeiro run e o restante do nome é apagado.
-Também limpa autor, empresa e autores de comentários e revisões.
+Também limpa autor, empresa e autores de comentários e revisões, anonimiza os
+textos de gráficos e SmartArt e remove da cópia os objetos incorporados
+(planilhas, PDFs e outros arquivos colados no documento, com as miniaturas deles)
+e as macros (.docm vira .docx).
 """
 
 from __future__ import annotations
 
+import posixpath
 import re
 import shutil
 import tempfile
@@ -27,6 +31,14 @@ DC = "{http://purl.org/dc/elements/1.1/}"
 CP = "{http://schemas.openxmlformats.org/package/2006/metadata/core-properties}"
 EP = "{http://schemas.openxmlformats.org/officeDocument/2006/extended-properties}"
 REL = "{http://schemas.openxmlformats.org/package/2006/relationships}"
+R_NS = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
+CT = "{http://schemas.openxmlformats.org/package/2006/content-types}"
+MC = "{http://schemas.openxmlformats.org/markup-compatibility/2006}"
+TIPO_DOCX = "application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"
+MARCADOR = "[objeto incorporado removido]"
+PARTE_VBA = re.compile(r"^word/(?:vbaProject\.bin|vbaData\.xml|_rels/vbaProject\.bin\.rels)$")
+PARTE_GRAFICO = re.compile(r"^word/(?:charts/chart\d+|diagrams/(?:data|drawing)\d+)\.xml$")
+CONTEINERES = {W + "object", W + "pict", W + "drawing", MC + "AlternateContent"}
 
 PARTE_TEXTO = re.compile(
     r"^word/(?:document|header\d*|footer\d*|footnotes|endnotes|comments|commentsExtended"
@@ -129,6 +141,10 @@ def extrair(caminho: str, opcoes: Opcoes) -> Extraido:
         for nome in nomes:
             if PARTE_TEXTO.match(nome):
                 partes.extend(_textos_da_parte(etree.fromstring(z.read(nome), PARSER)))
+            elif PARTE_GRAFICO.match(nome):
+                raiz = etree.fromstring(z.read(nome), PARSER)
+                partes.extend(el.text for el in raiz.iter()
+                              if isinstance(el.tag, str) and el.text and el.text.strip())
         if "docProps/core.xml" in nomes:
             core = etree.fromstring(z.read("docProps/core.xml"), PARSER)
             for el in core:
@@ -139,8 +155,12 @@ def extrair(caminho: str, opcoes: Opcoes) -> Extraido:
         if imagens:
             avisos.append(f"O documento tem {len(imagens)} imagem(ns); textos dentro de imagens "
                           "(assinaturas, carimbos, prints) NÃO são anonimizados.")
-        if any(n.startswith("word/embeddings/") for n in nomes):
-            avisos.append("O documento tem objetos incorporados (planilhas, PDFs); eles não são analisados.")
+        objetos = [n for n in nomes if n.startswith("word/embeddings/")]
+        if objetos:
+            avisos.append(f"O documento tem {len(objetos)} objeto(s) incorporado(s) (planilhas, PDFs ou "
+                          "outros arquivos). Eles não são analisados e serão REMOVIDOS da cópia.")
+        if any(PARTE_VBA.match(n) for n in nomes):
+            avisos.append("O documento tem macros. Elas serão removidas e a cópia será salva como .docx.")
         doc = z.read("word/document.xml")
         if b"<w:del " in doc or b"<w:ins " in doc:
             avisos.append("Há alterações controladas: o texto excluído também foi anonimizado, mas o "
@@ -204,49 +224,204 @@ def _processar_texto_generico(raiz, substituidor) -> None:
             el.text = substituidor.substituir(el.text)
 
 
+# ------------------------------------------------- objetos incorporados e macros
+def _origem_dos_rels(nome_rels: str) -> str:
+    """word/_rels/document.xml.rels -> word/document.xml; _rels/.rels -> "" (o pacote)."""
+    pasta, arq = posixpath.split(nome_rels)
+    return posixpath.join(posixpath.dirname(pasta), arq[:-5]) if arq != ".rels" else ""
+
+
+def _rels_da_parte(parte: str) -> str:
+    pasta, arq = posixpath.split(parte)
+    return posixpath.join(pasta, "_rels", arq + ".rels")
+
+
+def _alvo(origem: str, target: str) -> str:
+    if target.startswith("/"):
+        return target.lstrip("/")
+    return posixpath.normpath(posixpath.join(posixpath.dirname(origem), target))
+
+
+def _ids_r(el) -> set[str]:
+    return {v for k, v in el.attrib.items() if k.startswith("{%s}" % R_NS)}
+
+
+def _anexado(el, raiz) -> bool:
+    while el is not None:
+        if el is raiz:
+            return True
+        el = el.getparent()
+    return False
+
+
+def _conteiner(el):
+    """O bloco mais externo que representa o objeto no texto (w:object, desenho etc.)."""
+    achado, atual = None, el
+    while atual is not None and atual.tag not in (W + "r", W + "p", W + "body"):
+        if atual.tag in CONTEINERES:
+            achado = atual
+        atual = atual.getparent()
+    return achado
+
+
+def _trocar_por_marcador(bloco) -> None:
+    pai = bloco.getparent()
+    t = etree.Element(W + "t")
+    t.text = MARCADOR
+    if pai.tag == W + "r":
+        novo = t
+    else:
+        novo = etree.Element(W + "r")
+        novo.append(t)
+    pai.replace(bloco, novo)
+
+
+def limpar_pacote(partes: dict[str, bytes]) -> list[str]:
+    """Tira do pacote os objetos incorporados e as macros. Altera `partes` (nome -> bytes).
+
+    O objeto sai junto com a relação que aponta para ele, com o trecho do documento
+    que o exibe (trocado por um marcador) e com a miniatura, que é uma imagem do
+    conteúdo do objeto. Em gráficos, sai só o vínculo com a planilha de dados.
+    """
+    objetos = {n for n in partes if n.startswith("word/embeddings/")}
+    macros = {n for n in partes if PARTE_VBA.match(n)}
+    remover = objetos | macros
+    if not remover:
+        return []
+
+    rels = {n: etree.fromstring(partes[n], PARSER) for n in partes
+            if n.endswith(".rels") and n not in remover}
+    ids_removidos: dict[str, set[str]] = {}
+    for nome, raiz in rels.items():
+        origem = _origem_dos_rels(nome)
+        for rel in list(raiz.iter(REL + "Relationship")):
+            if rel.get("TargetMode") != "External" and _alvo(origem, rel.get("Target", "")) in remover:
+                ids_removidos.setdefault(origem, set()).add(rel.get("Id"))
+                rel.getparent().remove(rel)
+
+    marcadores = 0
+    for origem, ids in ids_removidos.items():
+        if not origem.endswith(".xml") or origem not in partes:
+            continue
+        raiz = etree.fromstring(partes[origem], PARSER)
+        sem_uso: set[str] = set()
+        for el in list(raiz.iter()):
+            if not isinstance(el.tag, str) or not (_ids_r(el) & ids) or not _anexado(el, raiz):
+                continue
+            bloco = _conteiner(el)
+            if bloco is None:
+                el.getparent().remove(el)  # ex.: c:externalData de um gráfico
+                continue
+            for sub in bloco.iter():
+                if isinstance(sub.tag, str):
+                    sem_uso |= _ids_r(sub)
+            _trocar_por_marcador(bloco)
+            marcadores += 1
+        ainda_usados = set()
+        for el in raiz.iter():
+            if isinstance(el.tag, str):
+                ainda_usados |= _ids_r(el)
+        partes[origem] = _serializar(raiz)
+        raiz_rels = rels.get(_rels_da_parte(origem))
+        if raiz_rels is not None:
+            for rel in list(raiz_rels.iter(REL + "Relationship")):
+                if rel.get("Id") in sem_uso - ainda_usados:
+                    rel.getparent().remove(rel)  # miniatura do objeto removido
+
+    # imagens que ficaram sem nenhuma referência (as miniaturas) também saem
+    referenciadas = {_alvo(_origem_dos_rels(n), rel.get("Target", ""))
+                     for n, raiz in rels.items() for rel in raiz.iter(REL + "Relationship")
+                     if rel.get("TargetMode") != "External"}
+    remover |= {n for n in partes if n.startswith("word/media/") and n not in referenciadas}
+
+    for nome, raiz in rels.items():
+        partes[nome] = _serializar(raiz)
+    if "[Content_Types].xml" in partes:
+        ct = etree.fromstring(partes["[Content_Types].xml"], PARSER)
+        for o in list(ct.iter(CT + "Override")):
+            nome = o.get("PartName", "").lstrip("/")
+            if nome in remover:
+                ct.remove(o)
+            elif macros and nome == "word/document.xml" and "macroEnabled" in o.get("ContentType", ""):
+                o.set("ContentType", TIPO_DOCX)
+        if macros and not any(n.lower().endswith(".bin") for n in partes if n not in remover):
+            for d in list(ct.iter(CT + "Default")):
+                if d.get("Extension", "").lower() == "bin":
+                    ct.remove(d)
+        partes["[Content_Types].xml"] = _serializar(ct)
+    for nome in remover:
+        partes.pop(nome, None)
+
+    avisos = []
+    if objetos:
+        avisos.append(f"{len(objetos)} objeto(s) incorporado(s) (planilhas, PDFs ou outros arquivos) "
+                      f"removido(s) da cópia, junto com as miniaturas. No texto ficou "
+                      f"\"{MARCADOR}\" ({marcadores} ocorrência(s)).")
+    if macros:
+        avisos.append("As macros foram removidas e a cópia foi salva como .docx.")
+    return avisos
+
+
 def _serializar(raiz) -> bytes:
     return etree.tostring(raiz, xml_declaration=True, encoding="UTF-8", standalone=True)
 
 
 def anonimizar(caminho: str, saida: str, substituidor, opcoes: Opcoes, cache=None) -> list[str]:
     with _ler_pacote(caminho) as zin:
-        tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".docx", dir=str(Path(saida).parent))
-        tmp.close()
-        try:
-            with zipfile.ZipFile(tmp.name, "w") as zout:
-                for info in zin.infolist():
-                    dados = zin.read(info.filename)
-                    nome = info.filename
-                    try:
-                        if PARTE_TEXTO.match(nome):
-                            raiz = etree.fromstring(dados, PARSER)
-                            _processar_parte_texto(raiz, substituidor)
-                            _limpar_autores(raiz)
-                            dados = _serializar(raiz)
-                        elif PARTE_WORD_XML.match(nome):
-                            raiz = etree.fromstring(dados, PARSER)
-                            _limpar_autores(raiz)
-                            dados = _serializar(raiz)
-                        elif nome == "docProps/core.xml":
-                            raiz = etree.fromstring(dados, PARSER)
-                            _processar_core(raiz, substituidor)
-                            dados = _serializar(raiz)
-                        elif nome == "docProps/app.xml":
-                            raiz = etree.fromstring(dados, PARSER)
-                            _processar_app(raiz)
-                            dados = _serializar(raiz)
-                        elif nome == "docProps/custom.xml" or re.match(r"^customXml/item\d+\.xml$", nome):
-                            raiz = etree.fromstring(dados, PARSER)
-                            _processar_texto_generico(raiz, substituidor)
-                            dados = _serializar(raiz)
-                        elif nome.endswith(".rels"):
-                            raiz = etree.fromstring(dados, PARSER)
-                            _processar_rels(raiz, substituidor)
-                            dados = _serializar(raiz)
-                    except etree.XMLSyntaxError as e:
-                        raise ErroFormato(f"XML inválido em {nome} ({e}).") from e
-                    zout.writestr(info, dados, compress_type=info.compress_type)
-            shutil.move(tmp.name, saida)
-        finally:
-            Path(tmp.name).unlink(missing_ok=True)
-    return []
+        infos = zin.infolist()
+        partes = {i.filename: zin.read(i.filename) for i in infos}
+    try:
+        avisos = limpar_pacote(partes)
+    except etree.XMLSyntaxError as e:
+        raise ErroFormato(f"XML inválido ao remover objetos incorporados ({e}).") from e
+    tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".docx", dir=str(Path(saida).parent))
+    tmp.close()
+    try:
+        with zipfile.ZipFile(tmp.name, "w") as zout:
+            for info in infos:
+                nome = info.filename
+                if nome not in partes:
+                    continue  # objeto incorporado, miniatura ou macro removidos
+                dados = partes[nome]
+                try:
+                    if PARTE_TEXTO.match(nome):
+                        raiz = etree.fromstring(dados, PARSER)
+                        _processar_parte_texto(raiz, substituidor)
+                        _limpar_autores(raiz)
+                        dados = _serializar(raiz)
+                    elif PARTE_GRAFICO.match(nome):
+                        raiz = etree.fromstring(dados, PARSER)
+                        _processar_texto_generico(raiz, substituidor)
+                        dados = _serializar(raiz)
+                    elif PARTE_WORD_XML.match(nome):
+                        raiz = etree.fromstring(dados, PARSER)
+                        _limpar_autores(raiz)
+                        dados = _serializar(raiz)
+                    elif nome == "docProps/core.xml":
+                        raiz = etree.fromstring(dados, PARSER)
+                        _processar_core(raiz, substituidor)
+                        dados = _serializar(raiz)
+                    elif nome == "docProps/app.xml":
+                        raiz = etree.fromstring(dados, PARSER)
+                        _processar_app(raiz)
+                        dados = _serializar(raiz)
+                    elif nome == "docProps/custom.xml" or re.match(r"^customXml/item\d+\.xml$", nome):
+                        raiz = etree.fromstring(dados, PARSER)
+                        _processar_texto_generico(raiz, substituidor)
+                        dados = _serializar(raiz)
+                    elif nome.endswith(".rels"):
+                        raiz = etree.fromstring(dados, PARSER)
+                        _processar_rels(raiz, substituidor)
+                        dados = _serializar(raiz)
+                except etree.XMLSyntaxError as e:
+                    raise ErroFormato(f"XML inválido em {nome} ({e}).") from e
+                zout.writestr(info, dados, compress_type=info.compress_type)
+        with zipfile.ZipFile(tmp.name) as conferir:
+            sobrou = [n for n in conferir.namelist()
+                      if n.startswith("word/embeddings/") or PARTE_VBA.match(n)]
+        if sobrou:  # nunca deve acontecer; se acontecer, não entrega o arquivo
+            raise ErroFormato(f"não foi possível remover da cópia: {', '.join(sobrou)}")
+        shutil.move(tmp.name, saida)
+    finally:
+        Path(tmp.name).unlink(missing_ok=True)
+    return avisos

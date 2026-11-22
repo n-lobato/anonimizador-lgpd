@@ -1,4 +1,10 @@
-"""Planilhas Excel (.xlsx)."""
+"""Planilhas Excel (.xlsx e .xlsm).
+
+A cópia anonimizada sai sem o que guarda dados fora das células: vínculos com
+outras planilhas (as fórmulas que dependiam deles viram o valor salvo), caches
+de tabelas dinâmicas (a tabela vira valores fixos), objetos incorporados e
+macros (.xlsm vira .xlsx).
+"""
 
 from __future__ import annotations
 
@@ -9,16 +15,51 @@ from . import ErroFormato, Extraido, Opcoes
 
 # texto entre aspas dentro de uma fórmula; no Excel, aspas dentro do texto são escritas como ""
 LITERAL = re.compile(r'"((?:[^"]|"")*)"')
+# referência a outra pasta de trabalho dentro de uma fórmula, ex.: [1]Plan1!A1
+EXTERNO = re.compile(r"\[\d+\]")
+PROIBIDOS_NA_COPIA = ("xl/vbaProject.bin", "xl/externalLinks/", "xl/pivotCache/", "xl/pivotTables/",
+                      "xl/embeddings/")
 CABECALHOS = ("oddHeader", "oddFooter", "evenHeader", "evenFooter", "firstHeader", "firstFooter")
 
 
-def _abrir(caminho: str):
+def _abrir(caminho: str, valores: bool = False):
+    """Abre sem macros e sem vínculos externos; com valores=True, traz os valores salvos
+    no lugar das fórmulas (usado para as fórmulas que dependiam de vínculos)."""
     try:
         import openpyxl
-        keep_vba = caminho.lower().endswith(".xlsm")
-        return openpyxl.load_workbook(caminho, keep_vba=keep_vba)
+        return openpyxl.load_workbook(caminho, keep_vba=False, keep_links=False, data_only=valores)
     except Exception as e:
         raise ErroFormato(f"não foi possível abrir a planilha ({e}).") from e
+
+
+def _estrutura(caminho: str) -> dict[str, bool]:
+    try:
+        with zipfile.ZipFile(caminho) as z:
+            nomes = z.namelist()
+    except zipfile.BadZipFile:
+        nomes = []
+    def tem(prefixo):
+        return any(n.startswith(prefixo) for n in nomes)
+    return {"macros": "xl/vbaProject.bin" in nomes, "vinculos": tem("xl/externalLinks/"),
+            "dinamicas": tem("xl/pivotCache/") or tem("xl/pivotTables/"), "objetos": tem("xl/embeddings/"),
+            "desenhos": tem("xl/drawings/") or tem("xl/charts/")}
+
+
+def _usa_vinculo(formula: str) -> bool:
+    return bool(EXTERNO.search(LITERAL.sub('""', formula)))
+
+
+def _valores_salvos(caminho: str) -> dict[tuple[str, str], object]:
+    """Valor salvo de cada célula cuja fórmula depende de outra pasta de trabalho."""
+    wb_f, wb_v = _abrir(caminho), _abrir(caminho, valores=True)
+    saida = {}
+    for ws in wb_f.worksheets:
+        for linha in ws.iter_rows():
+            for cel in linha:
+                f = _formula(cel.value)
+                if f is not None and _usa_vinculo(f):
+                    saida[(ws.title, cel.coordinate)] = wb_v[ws.title][cel.coordinate].value
+    return saida
 
 
 def _formula(valor) -> str | None:
@@ -58,27 +99,30 @@ def _partes_cabecalho(ws):
 
 
 def _avisos_estrutura(caminho: str) -> list[str]:
-    try:
-        with zipfile.ZipFile(caminho) as z:
-            nomes = z.namelist()
-    except zipfile.BadZipFile:
-        return []
+    e = _estrutura(caminho)
     avisos = []
-    if any(n.startswith("xl/drawings/") for n in nomes) or any(n.startswith("xl/charts/") for n in nomes):
+    if e["desenhos"]:
         avisos.append("A planilha tem gráficos, imagens ou formas: eles podem não ser preservados na cópia "
                       "anonimizada e não foram analisados.")
-    if any(n.startswith("xl/externalLinks/") for n in nomes):
-        avisos.append("A planilha tem vínculos com outros arquivos: os caminhos e valores guardados desses "
-                      "vínculos não foram analisados.")
-    if any(n.startswith("xl/pivotCache/") for n in nomes):
-        avisos.append("A planilha tem tabelas dinâmicas: os dados guardados no cache delas não foram "
-                      "analisados e podem conter os valores originais.")
+    if e["vinculos"]:
+        avisos.append("A planilha tem vínculos com outros arquivos. Eles são removidos da cópia, e as "
+                      "fórmulas que dependiam deles viram o valor salvo (também anonimizado).")
+    if e["dinamicas"]:
+        avisos.append("A planilha tem tabelas dinâmicas. Na cópia elas viram valores fixos: o cache com os "
+                      "dados de origem é removido.")
+    if e["objetos"]:
+        avisos.append("A planilha tem objetos incorporados (outros arquivos colados nela). Eles são removidos "
+                      "da cópia.")
+    if e["macros"]:
+        avisos.append("A planilha tem macros. Elas são removidas e a cópia é salva como .xlsx.")
     return avisos
 
 
 def extrair(caminho: str, opcoes: Opcoes) -> Extraido:
     wb = _abrir(caminho)
     partes: list[str] = []
+    if _estrutura(caminho)["vinculos"]:
+        partes.extend(str(v) for v in _valores_salvos(caminho).values() if isinstance(v, str))
     for cel in _celulas(wb):
         f = _formula(cel.value)
         if f is not None:
@@ -99,7 +143,15 @@ def extrair(caminho: str, opcoes: Opcoes) -> Extraido:
 
 
 def anonimizar(caminho: str, saida: str, substituidor, opcoes: Opcoes, cache=None) -> list[str]:
+    estrutura = _estrutura(caminho)
     wb = _abrir(caminho)
+    salvos = _valores_salvos(caminho) if estrutura["vinculos"] else {}
+    for (aba, coord), valor in salvos.items():
+        wb[aba][coord].value = substituidor.substituir(valor) if isinstance(valor, str) else valor
+    for nome in [n for n, d in list(wb.defined_names.items()) if _usa_vinculo(str(d.value or ""))]:
+        del wb.defined_names[nome]
+    for ws in wb.worksheets:
+        ws._pivots = []  # a tabela continua nas células, como valores; sai o cache com a origem
     for cel in _celulas(wb):
         f = _formula(cel.value)
         if f is not None:
@@ -135,4 +187,11 @@ def anonimizar(caminho: str, saida: str, substituidor, opcoes: Opcoes, cache=Non
         if isinstance(valor, str):
             setattr(p, attr, substituidor.substituir(valor))
     wb.save(saida)
-    return _avisos_estrutura(caminho)
+    with zipfile.ZipFile(saida) as z:
+        sobrou = [n for n in z.namelist() if n.startswith(PROIBIDOS_NA_COPIA)]
+    if sobrou:  # nunca deve acontecer; se acontecer, não entrega o arquivo
+        raise ErroFormato(f"não foi possível remover da cópia: {', '.join(sobrou)}")
+    avisos = _avisos_estrutura(caminho)
+    if salvos:
+        avisos.append(f"{len(salvos)} fórmula(s) que dependiam de outras planilhas viraram o valor salvo.")
+    return avisos
