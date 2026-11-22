@@ -16,6 +16,7 @@ class Opcoes:
     forcar_ocr: bool = False
     idioma_ocr: str = "por"
     dpi_ocr: int = 300
+    remover_imagens: bool = False  # Word e Excel: tira as imagens em vez de analisá-las
 
 
 @dataclass

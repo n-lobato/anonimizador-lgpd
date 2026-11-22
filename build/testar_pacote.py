@@ -28,7 +28,8 @@ from pathlib import Path
 NOME = "Pedro Henrique Alves"
 CPF = "529.982.247-25"
 FRASE = f"Requerente: {NOME}, brasileiro, inscrito no CPF sob o nº {CPF}, residente em Brasília."
-ARQUIVOS = ("teste.txt", "documento.pdf", "escaneado.pdf", "documento.docx", "planilha.xlsx", "foto.png")
+ARQUIVOS = ("teste.txt", "documento.pdf", "escaneado.pdf", "documento.docx", "planilha.xlsx", "foto.png",
+            "foto_no_word.docx")
 
 
 def preparar(pasta: Path) -> None:
@@ -56,6 +57,11 @@ def preparar(pasta: Path) -> None:
     wb.active.append(["Nome", "CPF"])
     wb.active.append([NOME, CPF])
     wb.save(pasta / "planilha.xlsx")
+    # só a foto do documento dentro do Word: o dado está apenas nos pixels da imagem
+    d = docx.Document()
+    d.add_paragraph("Segue cópia do documento.")
+    d.add_picture(str(pasta / "foto.png"), width=docx.shared.Cm(15))
+    d.save(pasta / "foto_no_word.docx")
     print("Amostras criadas em", pasta)
 
 
@@ -89,7 +95,8 @@ def conferir(cli: Path, pasta: Path, janela: Path | None) -> None:
         txt = rodar(cli, "--apenas-analisar", str(trabalho / nome))
         if achados(txt, "CPF") < 1:
             raise SystemExit(f"FALHOU: o CPF não foi encontrado em {nome}"
-                             + (" (o OCR do pacote não funcionou)" if nome in ("escaneado.pdf", "foto.png") else ""))
+                             + (" (o OCR do pacote não funcionou)" if nome in ("escaneado.pdf", "foto.png", "foto_no_word.docx")
+                                else ""))
         if achados(txt, "PESSOA") < 1:
             raise SystemExit(f"FALHOU: o nome não foi encontrado em {nome}")
 

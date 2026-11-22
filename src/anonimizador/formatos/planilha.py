@@ -8,10 +8,11 @@ macros (.xlsm vira .xlsx).
 
 from __future__ import annotations
 
+import io
 import re
 import zipfile
 
-from . import ErroFormato, Extraido, Opcoes
+from . import ErroFormato, Extraido, Opcoes, imagens_office
 
 # texto entre aspas dentro de uma fórmula; no Excel, aspas dentro do texto são escritas como ""
 LITERAL = re.compile(r'"((?:[^"]|"")*)"')
@@ -98,12 +99,28 @@ def _partes_cabecalho(ws):
                 yield parte
 
 
+def _imagens(wb) -> dict[str, tuple[object, bytes]]:
+    """Imagens coladas nas abas: nome com extensão -> (objeto do openpyxl, conteúdo)."""
+    saida = {}
+    for ws in wb.worksheets:
+        for i, img in enumerate(getattr(ws, "_images", [])):
+            try:
+                dados = img._data()
+            except Exception:
+                continue
+            fmt = (getattr(img, "format", "") or "").lower()
+            ext = {"jpeg": ".jpg", "jpg": ".jpg", "gif": ".gif"}.get(fmt, ".png")
+            saida[f"{ws.title}/imagem{i + 1}{ext}"] = (img, dados)
+    return saida
+
+
 def _avisos_estrutura(caminho: str) -> list[str]:
     e = _estrutura(caminho)
     avisos = []
     if e["desenhos"]:
-        avisos.append("A planilha tem gráficos, imagens ou formas: eles podem não ser preservados na cópia "
-                      "anonimizada e não foram analisados.")
+        avisos.append("A planilha tem gráficos ou formas: eles podem não ser preservados na cópia "
+                      "anonimizada e os textos deles não foram analisados. Imagens coladas passam por OCR "
+                      "(ou são removidas, se a opção estiver marcada).")
     if e["vinculos"]:
         avisos.append("A planilha tem vínculos com outros arquivos. Eles são removidos da cópia, e as "
                       "fórmulas que dependiam deles viram o valor salvo (também anonimizado).")
@@ -139,7 +156,12 @@ def extrair(caminho: str, opcoes: Opcoes) -> Extraido:
     for ws in wb.worksheets:
         partes.append(ws.title)
         partes.extend(p.text for p in _partes_cabecalho(ws))
-    return Extraido("\n".join(partes), _avisos_estrutura(caminho))
+    analise = None
+    imagens = _imagens(wb)
+    if imagens and not opcoes.remover_imagens:
+        analise = imagens_office.analisar({n: d for n, (_, d) in imagens.items()}, opcoes)
+        partes.append(analise.texto())
+    return Extraido("\n".join(partes), _avisos_estrutura(caminho), analise)
 
 
 def anonimizar(caminho: str, saida: str, substituidor, opcoes: Opcoes, cache=None) -> list[str]:
@@ -152,6 +174,23 @@ def anonimizar(caminho: str, saida: str, substituidor, opcoes: Opcoes, cache=Non
         del wb.defined_names[nome]
     for ws in wb.worksheets:
         ws._pivots = []  # a tabela continua nas células, como valores; sai o cache com a origem
+    avisos_imagens: list[str] = []
+    imagens = _imagens(wb)
+    if imagens and opcoes.remover_imagens:
+        for ws in wb.worksheets:
+            ws._images = []
+        avisos_imagens.append(f"{len(imagens)} imagem(ns) removida(s) da cópia, como pedido nas opções.")
+    elif imagens:
+        analise = cache if isinstance(cache, imagens_office.Analise) \
+            else imagens_office.analisar({n: d for n, (_, d) in imagens.items()}, opcoes)
+        tarjadas = 0
+        for nome, (img, dados) in imagens.items():
+            novo, acao = imagens_office.tratar(nome, dados, analise, substituidor, opcoes)
+            if acao:
+                img.ref = io.BytesIO(novo)
+            tarjadas += acao == "tarjada"
+        avisos_imagens += imagens_office.aviso_resultado(analise, tarjadas)
+        avisos_imagens += imagens_office.avisos_analise(analise)
     for cel in _celulas(wb):
         f = _formula(cel.value)
         if f is not None:
@@ -191,7 +230,7 @@ def anonimizar(caminho: str, saida: str, substituidor, opcoes: Opcoes, cache=Non
         sobrou = [n for n in z.namelist() if n.startswith(PROIBIDOS_NA_COPIA)]
     if sobrou:  # nunca deve acontecer; se acontecer, não entrega o arquivo
         raise ErroFormato(f"não foi possível remover da cópia: {', '.join(sobrou)}")
-    avisos = _avisos_estrutura(caminho)
+    avisos = _avisos_estrutura(caminho) + avisos_imagens
     if salvos:
         avisos.append(f"{len(salvos)} fórmula(s) que dependiam de outras planilhas viraram o valor salvo.")
     return avisos

@@ -188,6 +188,11 @@ class JanelaPrincipal(QMainWindow):
         self.cb_revisar = QCheckBox("Revisar o que foi encontrado antes de salvar (recomendado)")
         self.cb_ocr = QCheckBox("Usar OCR em PDFs digitalizados e imagens")
         self.cb_forcar = QCheckBox("Usar OCR também em páginas que já têm texto (mais lento)")
+        self.cb_remover_img = QCheckBox("Remover as imagens de documentos Word e Excel (em vez de passar OCR)")
+        self.cb_remover_img.setToolTip(
+            "O OCR lê texto em imagens, mas erra em fotos tortas ou borradas e não enxerga rosto,\n"
+            "assinatura, carimbo ou digital. Marcando esta opção, cada imagem sai da cópia e, no Word,\n"
+            "fica no lugar o texto \"[imagem removida]\".")
         self.cb_global = QCheckBox("Mesmo código para a mesma pessoa em todos os arquivos do lote")
         self.cb_relatorio = QCheckBox("Gerar relatório de-para (tem os dados originais; fica fora da pasta de saída)")
         self.cb_relatorio.setToolTip(
@@ -195,7 +200,8 @@ class JanelaPrincipal(QMainWindow):
             "anonimização. É gravada na pasta \"Relatório de-para (NÃO COMPARTILHAR)\", ao lado dos\n"
             "originais, e nunca dentro da pasta com os documentos anonimizados.")
         self.cb_sub = QCheckBox("Incluir subpastas")
-        for cb in (self.cb_revisar, self.cb_ocr, self.cb_forcar, self.cb_global, self.cb_relatorio, self.cb_sub):
+        for cb in (self.cb_revisar, self.cb_ocr, self.cb_forcar, self.cb_remover_img, self.cb_global,
+                   self.cb_relatorio, self.cb_sub):
             lo.addWidget(cb)
         self.cb_ocr.toggled.connect(self.cb_forcar.setEnabled)
 
@@ -238,6 +244,7 @@ class JanelaPrincipal(QMainWindow):
         self.cb_ocr.setChecked(c.ocr)
         self.cb_forcar.setChecked(c.forcar_ocr)
         self.cb_forcar.setEnabled(c.ocr)
+        self.cb_remover_img.setChecked(c.remover_imagens)
         self.cb_global.setChecked(c.codigos_globais)
         self.cb_relatorio.setChecked(c.gerar_relatorio)
         self.cb_sub.setChecked(c.incluir_subpastas)
@@ -249,6 +256,7 @@ class JanelaPrincipal(QMainWindow):
         c.revisar = self.cb_revisar.isChecked()
         c.ocr = self.cb_ocr.isChecked()
         c.forcar_ocr = self.cb_forcar.isChecked()
+        c.remover_imagens = self.cb_remover_img.isChecked()
         c.codigos_globais = self.cb_global.isChecked()
         c.gerar_relatorio = self.cb_relatorio.isChecked()
         c.incluir_subpastas = self.cb_sub.isChecked()

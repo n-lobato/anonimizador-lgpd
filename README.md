@@ -104,6 +104,7 @@ Os arquivos são gravados na subpasta `anonimizados`, ao lado dos originais, com
 | PDF com texto | Tarja definitiva: o texto sob a tarja é **apagado do arquivo**, não apenas coberto. O código é escrito sobre a tarja. Remove metadados, anexos, links e valores de formulários. |
 | PDF digitalizado | OCR em português e tarja nos pixels da imagem. |
 | Imagens (.png, .jpg, .tif, .bmp) | OCR e tarja; a saída é uma imagem do mesmo tipo, sem os metadados EXIF. |
+| Imagens coladas no Word e no Excel | As imagens em PNG, JPG, TIFF e BMP passam pelo mesmo OCR das imagens soltas. As que têm dado pessoal recebem tarja nos pixels; as demais perdem só os metadados (EXIF, que pode ter a localização GPS da foto, XMP e comentários). Com a opção **Remover as imagens de documentos Word e Excel**, cada imagem sai da cópia e, no Word, fica no lugar "[imagem removida]". |
 | Texto (.txt, .md, .csv, .srt, .vtt) | Substituição direta, mantendo a codificação do arquivo. |
 | Excel (.xlsx, .xlsm) | Substitui o texto das células, dos comentários, dos links, dos cabeçalhos e rodapés e os textos entre aspas dentro de fórmulas (referências e funções ficam intactas), e limpa o autor. **Remove da cópia** o que guarda dados fora das células: vínculos com outras planilhas (as fórmulas que dependiam deles viram o valor salvo, também anonimizado), o cache das tabelas dinâmicas (a tabela vira valores fixos), objetos incorporados e macros (um .xlsm vira .xlsx). |
 
@@ -168,7 +169,7 @@ Se o [spaCy](https://spacy.io) com um modelo em português estiver instalado (ve
 
 - **Nenhuma detecção automática de nomes é perfeita.** Na medição acima, cerca de 1 em cada 10 nomes passou. Nomes raros, apelidos, prenomes soltos e nomes escritos em minúsculas são os que mais escapam, e algumas palavras podem ser marcadas por engano. Por isso a revisão vem ligada por padrão. Confira o resultado antes de compartilhar.
 - Nomes de rua sem número ("Avenida Pau-Brasil") são tratados como endereço, mesmo quando são só referência de lugar. Desmarque na revisão quando não for o caso.
-- Texto dentro de imagens coladas no Word ou no Excel (fotos de documentos, assinaturas, carimbos, prints) não é analisado. O programa avisa quando o documento tem imagens.
+- Nas imagens coladas no Word e no Excel, o OCR lê bem prints e documentos digitalizados, mas erra em fotos tortas, borradas, com reflexo ou letra pequena. E **não enxerga o que não é texto**: rosto, assinatura, carimbo, impressão digital. Imagens em formato vetorial do Office (EMF, WMF, SVG) e GIF não passam pelo OCR. Quando houver dúvida, use a opção de remover as imagens.
 - No PDF, quando o nome é curto e o código não cabe na tarja, ela fica só preta. A correspondência continua no relatório.
 - O OCR depende da qualidade da digitalização. Documentos tortos, manuscritos ou de baixa resolução podem ter falhas. Em escaneados, confira com atenção e-mails e dados dentro de tabelas: o OCR costuma ler o "@" errado.
 - Cópias de planilhas podem perder gráficos e imagens (limitação da biblioteca openpyxl).
@@ -191,6 +192,7 @@ anonimizador-cli.exe "C:\Processos\2026" -o "D:\Anonimizados"
 anonimizador-cli.exe peticao.docx --apenas-analisar
 anonimizador-cli.exe pasta --tipos PESSOA,CPF,RG,ENDERECO
 anonimizador-cli.exe pasta --relatorio        # gera também o de-para (fora da pasta de saída)
+anonimizador-cli.exe pasta --remover-imagens  # tira as imagens do Word e do Excel em vez de passar OCR
 anonimizador-cli.exe --help
 ```
 

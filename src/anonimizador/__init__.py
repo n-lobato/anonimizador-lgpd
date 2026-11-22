@@ -1,5 +1,5 @@
 """Anonimizador LGPD: remove dados pessoais de documentos, localmente."""
 
-__version__ = "1.3.2"
+__version__ = "1.4.0"
 NOME_APP = "Anonimizador LGPD"
 AUTOR = "n-lobato"

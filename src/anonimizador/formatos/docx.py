@@ -21,7 +21,7 @@ from pathlib import Path
 
 from lxml import etree
 
-from . import ErroFormato, Extraido, Opcoes
+from . import ErroFormato, Extraido, Opcoes, imagens_office
 
 W_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
 W = "{%s}" % W_NS
@@ -36,6 +36,7 @@ CT = "{http://schemas.openxmlformats.org/package/2006/content-types}"
 MC = "{http://schemas.openxmlformats.org/markup-compatibility/2006}"
 TIPO_DOCX = "application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"
 MARCADOR = "[objeto incorporado removido]"
+MARCADOR_IMAGEM = "[imagem removida]"
 PARTE_VBA = re.compile(r"^word/(?:vbaProject\.bin|vbaData\.xml|_rels/vbaProject\.bin\.rels)$")
 PARTE_GRAFICO = re.compile(r"^word/(?:charts/chart\d+|diagrams/(?:data|drawing)\d+)\.xml$")
 CONTEINERES = {W + "object", W + "pict", W + "drawing", MC + "AlternateContent"}
@@ -134,6 +135,7 @@ def _textos_da_parte(raiz) -> list[str]:
 def extrair(caminho: str, opcoes: Opcoes) -> Extraido:
     partes: list[str] = []
     avisos: list[str] = []
+    analise = None
     with _ler_pacote(caminho) as z:
         nomes = z.namelist()
         if "word/document.xml" not in nomes:
@@ -151,10 +153,13 @@ def extrair(caminho: str, opcoes: Opcoes) -> Extraido:
                 if el.tag in (DC + "title", DC + "subject", DC + "description", CP + "keywords"):
                     if el.text:
                         partes.append(el.text)
-        imagens = [n for n in nomes if n.startswith("word/media/")]
-        if imagens:
-            avisos.append(f"O documento tem {len(imagens)} imagem(ns); textos dentro de imagens "
-                          "(assinaturas, carimbos, prints) NÃO são anonimizados.")
+        imagens = {n: z.read(n) for n in nomes if n.startswith("word/media/")}
+        if imagens and opcoes.remover_imagens:
+            avisos.append(f"O documento tem {len(imagens)} imagem(ns). Elas serão REMOVIDAS da cópia, "
+                          "como pedido nas opções.")
+        elif imagens:
+            analise = imagens_office.analisar(imagens, opcoes)
+            partes.append(analise.texto())
         objetos = [n for n in nomes if n.startswith("word/embeddings/")]
         if objetos:
             avisos.append(f"O documento tem {len(objetos)} objeto(s) incorporado(s) (planilhas, PDFs ou "
@@ -165,7 +170,7 @@ def extrair(caminho: str, opcoes: Opcoes) -> Extraido:
         if b"<w:del " in doc or b"<w:ins " in doc:
             avisos.append("Há alterações controladas: o texto excluído também foi anonimizado, mas o "
                           "ideal é aceitar ou rejeitar as revisões antes de compartilhar.")
-    return Extraido("\n".join(partes), avisos)
+    return Extraido("\n".join(partes), avisos, analise)
 
 
 def _processar_parte_texto(raiz, substituidor) -> None:
@@ -264,10 +269,13 @@ def _conteiner(el):
     return achado
 
 
-def _trocar_por_marcador(bloco) -> None:
+def _trocar_por_marcador(bloco, marcador: str) -> None:
     pai = bloco.getparent()
+    if pai.tag not in (W + "r", W + "p"):
+        pai.remove(bloco)  # ex.: marcador de lista com figura; não há onde pôr texto
+        return
     t = etree.Element(W + "t")
-    t.text = MARCADOR
+    t.text = marcador
     if pai.tag == W + "r":
         novo = t
     else:
@@ -276,7 +284,7 @@ def _trocar_por_marcador(bloco) -> None:
     pai.replace(bloco, novo)
 
 
-def limpar_pacote(partes: dict[str, bytes]) -> list[str]:
+def limpar_pacote(partes: dict[str, bytes], remover_imagens: bool = False) -> list[str]:
     """Tira do pacote os objetos incorporados e as macros. Altera `partes` (nome -> bytes).
 
     O objeto sai junto com a relação que aponta para ele, com o trecho do documento
@@ -285,22 +293,26 @@ def limpar_pacote(partes: dict[str, bytes]) -> list[str]:
     """
     objetos = {n for n in partes if n.startswith("word/embeddings/")}
     macros = {n for n in partes if PARTE_VBA.match(n)}
-    remover = objetos | macros
+    imagens = {n for n in partes if n.startswith("word/media/")} if remover_imagens else set()
+    remover = objetos | macros | imagens
     if not remover:
         return []
 
     rels = {n: etree.fromstring(partes[n], PARSER) for n in partes
             if n.endswith(".rels") and n not in remover}
-    ids_removidos: dict[str, set[str]] = {}
+    ids_removidos: dict[str, dict[str, str]] = {}  # parte -> {id da relação: parte removida}
     for nome, raiz in rels.items():
         origem = _origem_dos_rels(nome)
         for rel in list(raiz.iter(REL + "Relationship")):
-            if rel.get("TargetMode") != "External" and _alvo(origem, rel.get("Target", "")) in remover:
-                ids_removidos.setdefault(origem, set()).add(rel.get("Id"))
+            alvo = _alvo(origem, rel.get("Target", ""))
+            if rel.get("TargetMode") != "External" and alvo in remover:
+                ids_removidos.setdefault(origem, {})[rel.get("Id")] = alvo
                 rel.getparent().remove(rel)
 
     marcadores = 0
-    for origem, ids in ids_removidos.items():
+    imagens_no_texto = 0
+    for origem, mapa in ids_removidos.items():
+        ids = set(mapa)
         if not origem.endswith(".xml") or origem not in partes:
             continue
         raiz = etree.fromstring(partes[origem], PARSER)
@@ -312,11 +324,17 @@ def limpar_pacote(partes: dict[str, bytes]) -> list[str]:
             if bloco is None:
                 el.getparent().remove(el)  # ex.: c:externalData de um gráfico
                 continue
+            ids_bloco = set()
             for sub in bloco.iter():
                 if isinstance(sub.tag, str):
-                    sem_uso |= _ids_r(sub)
-            _trocar_por_marcador(bloco)
-            marcadores += 1
+                    ids_bloco |= _ids_r(sub)
+            sem_uso |= ids_bloco
+            e_objeto = any(mapa.get(i) in objetos for i in ids_bloco)
+            _trocar_por_marcador(bloco, MARCADOR if e_objeto else MARCADOR_IMAGEM)
+            if e_objeto:
+                marcadores += 1
+            else:
+                imagens_no_texto += 1
         ainda_usados = set()
         for el in raiz.iter():
             if isinstance(el.tag, str):
@@ -359,6 +377,9 @@ def limpar_pacote(partes: dict[str, bytes]) -> list[str]:
                       f"\"{MARCADOR}\" ({marcadores} ocorrência(s)).")
     if macros:
         avisos.append("As macros foram removidas e a cópia foi salva como .docx.")
+    if imagens:
+        avisos.append(f"{len(imagens)} imagem(ns) removida(s) da cópia, como pedido nas opções. No texto "
+                      f"ficou \"{MARCADOR_IMAGEM}\" ({imagens_no_texto} ocorrência(s)).")
     return avisos
 
 
@@ -371,9 +392,21 @@ def anonimizar(caminho: str, saida: str, substituidor, opcoes: Opcoes, cache=Non
         infos = zin.infolist()
         partes = {i.filename: zin.read(i.filename) for i in infos}
     try:
-        avisos = limpar_pacote(partes)
+        avisos = limpar_pacote(partes, opcoes.remover_imagens)
     except etree.XMLSyntaxError as e:
         raise ErroFormato(f"XML inválido ao remover objetos incorporados ({e}).") from e
+    if not opcoes.remover_imagens:
+        midia = {n: partes[n] for n in partes if n.startswith("word/media/")}
+        if midia:
+            analise = cache if isinstance(cache, imagens_office.Analise) \
+                else imagens_office.analisar(midia, opcoes)
+            tarjadas = 0
+            for nome, dados in midia.items():
+                novo, acao = imagens_office.tratar(nome, dados, analise, substituidor, opcoes)
+                partes[nome] = novo
+                tarjadas += acao == "tarjada"
+            avisos += imagens_office.aviso_resultado(analise, tarjadas)
+            avisos += imagens_office.avisos_analise(analise, presentes=set(midia))
     tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".docx", dir=str(Path(saida).parent))
     tmp.close()
     try:

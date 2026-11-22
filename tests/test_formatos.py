@@ -506,3 +506,136 @@ def test_pdf_nome_quebrado_entre_linhas_recebe_tarja(tmp_path):
     texto = fitz.open(s.arquivos[0].saida)[0].get_text()
     assert "Ubiratan" not in texto and "Silveira" not in texto and "Thaís" not in texto
     assert "conselho fiscal" in texto
+
+
+# ------------------------------------------------- imagens coladas no Word e no Excel
+def _png_simples() -> bytes:
+    import io
+
+    from PIL import Image
+    buf = io.BytesIO()
+    Image.new("RGB", (60, 40), "white").save(buf, format="PNG")
+    return buf.getvalue()
+
+
+def _jpeg_com_gps() -> bytes:
+    import io
+
+    from PIL import Image
+    im = Image.new("RGB", (60, 40), "white")
+    exif = Image.Exif()
+    exif[0x010F] = "Fabricante"  # Make
+    exif[0x8825] = {1: "S", 2: (15.0, 47.0, 0.0)}  # GPSInfo: latitude de Brasília
+    buf = io.BytesIO()
+    im.save(buf, format="JPEG", exif=exif.tobytes())
+    return buf.getvalue()
+
+
+def _imagem_com_cpf() -> bytes:
+    """Foto de documento: texto com nome e CPF desenhado como pixels (precisa do PyMuPDF)."""
+    pg = fitz.open().new_page(width=420, height=140)
+    pg.insert_text((20, 50), "Requerente: Pedro Henrique Alves", fontsize=18)
+    pg.insert_text((20, 95), "CPF 529.982.247-25", fontsize=18)
+    return pg.get_pixmap(dpi=200).tobytes("png")
+
+
+def _ocr_disponivel():
+    from anonimizador.formatos.ocr import localizar_tessdata
+    if fitz is None or not localizar_tessdata("por"):
+        pytest.skip("OCR indisponível (PyMuPDF ou por.traineddata)")
+
+
+def _ler_com_ocr(dados: bytes, tmp_path) -> str:
+    from anonimizador.formatos import Opcoes, imagem
+    arq = tmp_path / "conferir.png"
+    arq.write_bytes(dados)
+    return imagem.extrair(str(arq), Opcoes()).texto
+
+
+def test_docx_imagem_com_cpf_recebe_tarja(tmp_path):
+    _ocr_disponivel()
+    import io
+    docx = pytest.importorskip("docx")
+    d = docx.Document()
+    d.add_paragraph("Segue cópia do documento.")
+    d.add_picture(io.BytesIO(_imagem_com_cpf()))
+    f = tmp_path / "com_foto.docx"
+    d.save(f)
+    s = _rodar([f])
+    a = s.arquivos[0]
+    assert not a.erro, a.erro
+    with zipfile.ZipFile(a.saida) as z:
+        midia = [n for n in z.namelist() if n.startswith("word/media/")]
+        assert len(midia) == 1
+        texto = _ler_com_ocr(z.read(midia[0]), tmp_path)
+    assert "529.982" not in texto and "Henrique" not in texto
+    assert any("recebeu(ram) tarja" in av and "; 1 " in av for av in a.avisos)
+
+
+def test_xlsx_imagem_com_cpf_recebe_tarja(tmp_path):
+    _ocr_disponivel()
+    import io
+
+    from openpyxl import Workbook, load_workbook
+    from openpyxl.drawing.image import Image as ImagemXL
+    wb = Workbook()
+    wb.active["A1"] = "Documento anexo"
+    wb.active.add_image(ImagemXL(io.BytesIO(_imagem_com_cpf())), "B2")
+    f = tmp_path / "com_foto.xlsx"
+    wb.save(f)
+    s = _rodar([f])
+    a = s.arquivos[0]
+    assert not a.erro, a.erro
+    imgs = load_workbook(a.saida).active._images
+    assert len(imgs) == 1
+    texto = _ler_com_ocr(imgs[0]._data(), tmp_path)
+    assert "529.982" not in texto and "Henrique" not in texto
+
+
+def test_docx_e_xlsx_remover_imagens(tmp_path):
+    import io
+    docx = pytest.importorskip("docx")
+    from openpyxl import Workbook, load_workbook
+    from openpyxl.drawing.image import Image as ImagemXL
+    d = docx.Document()
+    d.add_paragraph("Antes da foto.")
+    d.add_picture(io.BytesIO(_png_simples()))
+    d.sections[0].header.paragraphs[0].add_run().add_picture(io.BytesIO(_png_simples()))
+    fd = tmp_path / "fotos.docx"
+    d.save(fd)
+    wb = Workbook()
+    wb.active.add_image(ImagemXL(io.BytesIO(_png_simples())), "A1")
+    fx = tmp_path / "fotos.xlsx"
+    wb.save(fx)
+
+    s = _rodar([fd, fx], remover_imagens=True)
+    for a in s.arquivos:
+        assert not a.erro, a.erro
+        assert any("removida(s) da cópia" in av for av in a.avisos)
+    with zipfile.ZipFile(s.arquivos[0].saida) as z:
+        assert not any(n.startswith("word/media/") for n in z.namelist())
+        assert "media/" not in z.read("word/_rels/document.xml.rels").decode()
+    out = docx.Document(s.arquivos[0].saida)
+    assert any("[imagem removida]" in p.text for p in out.paragraphs)
+    assert "[imagem removida]" in out.sections[0].header.paragraphs[0].text
+    assert load_workbook(s.arquivos[1].saida).active._images == []
+
+
+def test_imagem_sem_dados_perde_so_os_metadados(tmp_path):
+    """Foto de celular colada no Word pode levar a localização GPS no EXIF."""
+    import io
+    docx = pytest.importorskip("docx")
+    from PIL import Image
+    d = docx.Document()
+    d.add_paragraph("Foto do local.")
+    d.add_picture(io.BytesIO(_jpeg_com_gps()))
+    f = tmp_path / "foto_gps.docx"
+    d.save(f)
+    s = _rodar([f], ocr=False)  # mesmo sem OCR, os metadados saem
+    a = s.arquivos[0]
+    assert not a.erro, a.erro
+    with zipfile.ZipFile(a.saida) as z:
+        midia = [n for n in z.namelist() if n.startswith("word/media/")]
+        with Image.open(io.BytesIO(z.read(midia[0]))) as im:
+            assert not im.getexif() and im.size == (60, 40)
+    assert any("OCR está desligado" in av for av in a.avisos)

@@ -20,6 +20,8 @@ def _parser() -> argparse.ArgumentParser:
     p.add_argument("-o", "--saida", help="pasta de saída (padrão: subpasta 'anonimizados' ao lado do original)")
     p.add_argument("--sem-ocr", action="store_true", help="não usar OCR em páginas digitalizadas")
     p.add_argument("--forcar-ocr", action="store_true", help="usar OCR também em páginas com texto")
+    p.add_argument("--remover-imagens", action="store_true",
+                   help="tirar as imagens dos arquivos do Word e do Excel, em vez de passar OCR nelas")
     p.add_argument("--relatorio", action="store_true",
                    help="gerar a tabela de-para com os dados ORIGINAIS (fica fora da pasta de saída)")
     p.add_argument("--sem-relatorio", action="store_true", help="não gerar a tabela de-para (padrão)")
@@ -46,6 +48,8 @@ def main(argv: list[str] | None = None) -> int:
         cfg.ocr = False
     if args.forcar_ocr:
         cfg.forcar_ocr = True
+    if args.remover_imagens:
+        cfg.remover_imagens = True
     if args.relatorio:
         cfg.gerar_relatorio = True
     if args.sem_relatorio:

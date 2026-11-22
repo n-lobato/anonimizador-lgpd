@@ -23,6 +23,7 @@ class Configuracao:
     tipos: list[str] = field(default_factory=lambda: list(TIPOS_PADRAO))
     ocr: bool = True
     forcar_ocr: bool = False
+    remover_imagens: bool = False
     idioma_ocr: str = "por"
     dpi_ocr: int = 300
     revisar: bool = True
@@ -36,7 +37,7 @@ class Configuracao:
     def opcoes_formato(self):
         from .formatos import Opcoes
         return Opcoes(ocr=self.ocr, forcar_ocr=self.forcar_ocr, idioma_ocr=self.idioma_ocr,
-                      dpi_ocr=self.dpi_ocr)
+                      dpi_ocr=self.dpi_ocr, remover_imagens=self.remover_imagens)
 
 
 @dataclass
