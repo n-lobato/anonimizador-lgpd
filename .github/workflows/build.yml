@@ -65,6 +65,7 @@ jobs:
           Copy-Item README.md, LICENSE dist\AnonimizadorLGPD\
           python build/coletar_licencas.py dist\AnonimizadorLGPD
           if ($LASTEXITCODE -ne 0) { throw "Faltam licenças de terceiros" }
+          Get-ChildItem dist\AnonimizadorLGPD\LICENCAS -Directory | Select-Object -ExpandProperty Name
           Compress-Archive -Path dist\AnonimizadorLGPD -DestinationPath AnonimizadorLGPD-windows.zip
 
       - name: Ler a versão do programa
@@ -179,6 +180,8 @@ jobs:
           hdiutil attach -nobrowse -readonly -mountpoint /tmp/dmg "$DMG"
           ls -la /tmp/dmg
           codesign --verify --deep --strict "/tmp/dmg/Anonimizador LGPD.app"
+          test -f /tmp/dmg/THIRD-PARTY-NOTICES.md
+          ls /tmp/dmg/LICENCAS/*/LGPL-3.0.txt
           file "/tmp/dmg/Anonimizador LGPD.app/Contents/MacOS/AnonimizadorLGPD"
           "/tmp/dmg/Anonimizador LGPD.app/Contents/MacOS/anonimizador-cli" --help | head -3
           hdiutil detach /tmp/dmg
@@ -295,6 +298,8 @@ jobs:
           apt-get update
           apt-get install -y ./AnonimizadorLGPD-linux-amd64.deb python3 xvfb xauth
           test -f /usr/share/applications/anonimizador-lgpd.desktop
+          test -f /opt/anonimizador-lgpd/THIRD-PARTY-NOTICES.md
+          ls /opt/anonimizador-lgpd/LICENCAS/*/LGPL-3.0.txt /opt/anonimizador-lgpd/LICENCAS/tessdata_fast/LICENSE
           dpkg -s anonimizador-lgpd | sed -n '1,3p;/^Version/p'
 
       - name: Usar o programa instalado (texto, PDF, PDF digitalizado e janela)

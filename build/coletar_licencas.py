@@ -22,7 +22,16 @@ from pathlib import Path
 
 RAIZ = Path(__file__).resolve().parents[1]
 PRINCIPAIS = {"pyside6-essentials", "shiboken6", "pymupdf", "lxml", "openpyxl", "pillow"}
-NAO_EMPACOTADOS = {"pyside6-addons"}  # o spec exclui os módulos extras do Qt
+# dependências instaladas pelo pip que o anonimizador.spec deixa fora do pacote (excludes)
+NAO_EMPACOTADOS = {"pyside6-addons", "pyside6-webengine", "pyside6-pdf", "pymupdf-layout",
+                   "pymupdf4llm", "onnxruntime"}
+if sys.platform == "darwin":
+    NAO_EMPACOTADOS.add("numpy")
+# o PySide6 e o shiboken6 não trazem o texto da licença no pacote do pip; a licença
+# deles (LGPL-3.0, que complementa a GPL-3.0) vai a partir das cópias deste repositório
+TEXTOS_EXTRAS = {"pyside6": ["LGPL-3.0.txt", "GPL-3.0.txt"],
+                 "pyside6-essentials": ["LGPL-3.0.txt", "GPL-3.0.txt"],
+                 "shiboken6": ["LGPL-3.0.txt", "GPL-3.0.txt"]}
 
 
 def _norm(nome: str) -> str:
@@ -147,7 +156,13 @@ def main() -> int:
         nome = d.metadata["Name"]
         licenca = _licenca(d)
         linhas.append(f"| {nome} | {d.version} | {licenca} | {_site(d)} |")
-        if not _copiar_licencas(d, pasta / nome):
+        n = _copiar_licencas(d, pasta / nome)
+        for texto in TEXTOS_EXTRAS.get(_norm(nome), []):
+            origem = RAIZ / "LICENSE" if texto == "GPL-3.0.txt" else RAIZ / "build" / "licencas" / texto
+            (pasta / nome).mkdir(parents=True, exist_ok=True)
+            shutil.copy2(origem, pasta / nome / texto)
+            n += 1
+        if not n:
             sem_texto.append(nome)
             if _norm(nome) in PRINCIPAIS and licenca.startswith("não declarada"):
                 faltando.append(nome)

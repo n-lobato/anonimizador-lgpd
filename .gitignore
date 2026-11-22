@@ -17,6 +17,7 @@ build/*
 !build/testar_pacote.py
 !build/comparar_medicoes.py
 !build/coletar_licencas.py
+!build/licencas/
 !build/LEIA-ME-mac.txt
 !build/LEIA-ME-linux.txt
 *.spec.bak
